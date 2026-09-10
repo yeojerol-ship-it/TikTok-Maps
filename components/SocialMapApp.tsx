@@ -1,0 +1,181 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { ActivityItem, SheetSnap, SheetTab, SocialPlace } from "@/lib/types";
+import {
+  getActivityFeed,
+  getMapPlaces,
+  getRanking,
+  getSocialPlaces,
+} from "@/lib/selectors";
+import {
+  BottomSheet,
+  SHEET_SNAP_FRACTIONS,
+} from "@/components/BottomSheet/BottomSheet";
+import { SegmentedControl } from "@/components/BottomSheet/SegmentedControl";
+import { ActivityFeed } from "@/components/Activity/ActivityFeed";
+import { Ranking } from "@/components/Ranking/Ranking";
+import { RankingBar } from "@/components/Ranking/RankingBar";
+import { PlacePanel } from "@/components/Place/PlacePanel";
+import { MapCompass } from "@/components/Map/MapCompass";
+import {
+  PLACE_PANEL_REST_HEIGHT_FRACTION,
+  POI_PANEL_COMPASS_GAP_PX,
+} from "@/lib/poiPanelLayout";
+
+const SocialMap = dynamic(
+  () =>
+    import("@/components/Map/SocialMap").then((m) => m.SocialMap),
+  {
+    ssr: false,
+    loading: () => <div className="absolute inset-0 bg-[#e8e8ea]" />,
+  },
+);
+
+export function SocialMapApp() {
+  const socialPlaces = useMemo(() => getSocialPlaces(), []);
+  const mapPlaces = useMemo(() => getMapPlaces(), []);
+  const activities = useMemo(() => getActivityFeed(), []);
+  const ranking = useMemo(() => getRanking(), []);
+
+  const [selectedPlace, setSelectedPlace] = useState<SocialPlace | null>(null);
+  const [placePanelOpen, setPlacePanelOpen] = useState(false);
+  const [placePanelExpanded, setPlacePanelExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<SheetTab>("activities");
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>("collapsed");
+  const [restSheetSnap, setRestSheetSnap] = useState<SheetSnap>("collapsed");
+
+  const handleSnapChange = useCallback((snap: SheetSnap) => {
+    if (snap !== "expanded") setRestSheetSnap(snap);
+    setSheetSnap(snap);
+  }, []);
+
+  const handleSelectPlace = useCallback((place: SocialPlace) => {
+    setSelectedPlace(place);
+    setPlacePanelOpen(true);
+    setPlacePanelExpanded(false);
+    setSheetSnap("collapsed");
+    setRestSheetSnap("collapsed");
+  }, []);
+
+  const handleSelectActivity = useCallback(
+    (item: ActivityItem) => {
+      const place = socialPlaces.find((p) => p.id === item.place.id);
+      if (place) {
+        setSelectedPlace(place);
+        setPlacePanelOpen(true);
+        setPlacePanelExpanded(false);
+        setSheetSnap("collapsed");
+        setRestSheetSnap("collapsed");
+      }
+    },
+    [socialPlaces],
+  );
+
+  const handleClosePlace = useCallback(() => {
+    setPlacePanelOpen(false);
+    setActiveTab("activities");
+    setSheetSnap("collapsed");
+    setRestSheetSnap("collapsed");
+  }, []);
+
+  const handlePlaceExited = useCallback(() => {
+    setSelectedPlace(null);
+    setPlacePanelExpanded(false);
+  }, []);
+
+  const handleTabChange = useCallback((tab: SheetTab) => {
+    setActiveTab(tab);
+  }, []);
+
+  const isRankingView = !selectedPlace && activeTab === "ranking";
+  const showRankingBar = activeTab === "ranking" || Boolean(selectedPlace);
+  const rankingInsetFraction = selectedPlace
+    ? PLACE_PANEL_REST_HEIGHT_FRACTION
+    : SHEET_SNAP_FRACTIONS[restSheetSnap];
+  const rankingHidden = selectedPlace
+    ? placePanelExpanded || !placePanelOpen
+    : sheetSnap === "expanded";
+  const compassBottom = `calc(${PLACE_PANEL_REST_HEIGHT_FRACTION * 100}% + ${POI_PANEL_COMPASS_GAP_PX}px)`;
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <div className="absolute inset-0 z-0">
+        <SocialMap
+          places={mapPlaces}
+          selectedPlaceId={placePanelOpen ? selectedPlace?.id ?? null : null}
+          onSelectPlace={handleSelectPlace}
+          reserveBottomSheet={!placePanelOpen}
+        />
+      </div>
+
+      {showRankingBar ? (
+        <RankingBar
+          entries={ranking}
+          bottomInsetFraction={rankingInsetFraction}
+          hidden={rankingHidden}
+        />
+      ) : null}
+
+      {selectedPlace ? (
+        <>
+          <div
+            className={`poi-compass pointer-events-none absolute inset-x-0 z-40 flex justify-end px-4 ${placePanelOpen ? "poi-compass--enter" : "poi-compass--exit"}`}
+            style={{ bottom: compassBottom }}
+          >
+            <div
+              className={`map-chrome ${placePanelExpanded ? "map-chrome--hidden" : ""}`}
+            >
+              <MapCompass distance={selectedPlace.distance} />
+            </div>
+          </div>
+          <PlacePanel
+            key={selectedPlace.id}
+            place={selectedPlace}
+            exiting={!placePanelOpen}
+            onClose={handleClosePlace}
+            onExited={handlePlaceExited}
+            onExpandedChange={setPlacePanelExpanded}
+          />
+        </>
+      ) : null}
+
+      <BottomSheet
+        snap={sheetSnap}
+        onSnapChange={handleSnapChange}
+        grabberOverlay={isRankingView}
+        recede={placePanelOpen}
+      >
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="relative z-50 mb-2 shrink-0 px-4 pt-1">
+            <SegmentedControl active={activeTab} onChange={handleTabChange} />
+          </div>
+          <div className="relative z-0 min-h-0 flex-1 overflow-hidden">
+            <div
+              className={`sheet-pane ${
+                activeTab === "activities"
+                  ? "sheet-pane--active"
+                  : "sheet-pane--left"
+              }`}
+            >
+              <ActivityFeed
+                items={activities}
+                onSelectActivity={handleSelectActivity}
+              />
+            </div>
+            <div
+              className={`sheet-pane ${
+                activeTab === "ranking"
+                  ? "sheet-pane--active"
+                  : "sheet-pane--right"
+              }`}
+            >
+              <Ranking entries={ranking} />
+            </div>
+          </div>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
