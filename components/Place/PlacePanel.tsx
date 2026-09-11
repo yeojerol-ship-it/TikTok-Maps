@@ -10,7 +10,6 @@ import { usePanelExpandDrag } from "@/lib/usePanelExpandDrag";
 import {
   formatRelativeTime,
   getPlaceBeenFriend,
-  getPlaceDistanceLabel,
   getPlaceExperiences,
   getPlaceHours,
   getPlaceSavedFriends,
@@ -18,6 +17,8 @@ import {
 import { Avatar } from "@/components/Avatar/Avatar";
 import { AvatarStack } from "@/components/Avatar/AvatarStack";
 import { ActivityPlaceImages } from "@/components/Activity/ActivityPlaceImages";
+import { CornerBookmark } from "@/components/Place/CornerBookmark";
+import { currentUser } from "@/data/users";
 
 interface PlacePanelProps {
   place: SocialPlace;
@@ -68,19 +69,29 @@ function SocialPill({
   avatarUser,
   avatarUsers,
   plainText = false,
+  animateLeadingAvatar = false,
+  onLeadingAvatarAnimationEnd,
 }: {
   count: number;
   label: string;
   avatarUser?: User | null;
   avatarUsers?: User[];
   plainText?: boolean;
+  animateLeadingAvatar?: boolean;
+  onLeadingAvatarAnimationEnd?: () => void;
 }) {
   const stackedUsers = avatarUsers?.length ? avatarUsers : null;
 
   return (
     <div className="bump-pill inline-flex items-center gap-1.5 rounded-full py-1.5 pl-1.5 pr-3">
       {stackedUsers ? (
-        <AvatarStack users={stackedUsers} max={2} size={22} />
+        <AvatarStack
+          users={stackedUsers}
+          max={3}
+          size={22}
+          animateLeading={animateLeadingAvatar}
+          onLeadingAnimationEnd={onLeadingAvatarAnimationEnd}
+        />
       ) : avatarUser ? (
         <Avatar
           src={avatarUser.avatar}
@@ -110,16 +121,28 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
   ) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const hours = getPlaceHours(place.id);
-  const metaTail =
-    place.distance === "0m"
-      ? ` · ${hours} · ${place.category}`
-      : ` · ${hours} · ${getPlaceDistanceLabel(place.distance)} · ${place.category}`;
-  const savedCount = place.friendWantToGoCount;
+  const metaTail = ` · ${hours} · ${place.category}`;
+  const savedCount = place.friendWantToGoCount + (saved ? 1 : 0);
   const savedFriends = getPlaceSavedFriends(place.id);
+  const savedAvatarUsers = saved
+    ? [currentUser, ...savedFriends]
+    : savedFriends;
   const beenCount = place.friendBeenCount;
   const beenFriend = getPlaceBeenFriend(place.id);
   const experiences = getPlaceExperiences(place.id);
+
+  const handleToggleSave = useCallback(() => {
+    setSaved((prev) => {
+      const next = !prev;
+      setJustSaved(next);
+      return next;
+    });
+  }, []);
+
+  const clearJustSaved = useCallback(() => setJustSaved(false), []);
 
   const expand = useCallback(() => setExpanded(true), []);
   const collapse = useCallback(() => setExpanded(false), []);
@@ -133,6 +156,7 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
     enabled: !exiting,
     onExpand: expand,
     onCollapse: collapse,
+    onRestDragDown: onClose,
     rootRef,
   });
 
@@ -162,6 +186,8 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
         if (exiting) onExited?.();
       }}
     >
+      <CornerBookmark saved={saved} onToggle={handleToggleSave} />
+
       <div
         className="flex shrink-0 cursor-grab touch-none flex-col items-center pb-2 pt-3 active:cursor-grabbing"
         {...grabberProps}
@@ -171,10 +197,10 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
 
       <div
         data-sheet-scroll
-        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-28 ${expanded ? "" : "touch-none"}`}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-28"
         {...contentProps}
       >
-        <div className="inline-flex max-w-full items-center gap-1 pb-[2px] pt-1">
+        <div className="inline-flex max-w-[calc(100%-72px)] items-center gap-0.5 pb-[2px] pt-1">
           <h2 className="truncate text-[22px] font-bold leading-tight text-foreground">
             {place.name}
           </h2>
@@ -191,8 +217,10 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
             <SocialPill
               count={savedCount}
               label="saved"
-              avatarUsers={savedFriends}
+              avatarUsers={savedAvatarUsers}
               plainText
+              animateLeadingAvatar={justSaved}
+              onLeadingAvatarAnimationEnd={clearJustSaved}
             />
           ) : null}
           {beenCount > 0 ? (
@@ -205,7 +233,11 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
           ) : null}
         </div>
 
-        <div className="mt-6 space-y-5">
+        <div
+          className={
+            experiences.length > 0 ? "mt-6 space-y-5" : "mt-3"
+          }
+        >
           {experiences.length > 0 ? (
             experiences.map((experience) => (
               <div key={experience.user.id}>
@@ -233,6 +265,8 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
                       <ActivityPlaceImages
                         images={experience.images}
                         placeName={place.name}
+                        bleedEnd
+                        variant="scatter"
                       />
                     ) : null}
                   </div>
@@ -240,8 +274,9 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
               </div>
             ))
           ) : (
-            <p className="py-2 text-[13px] text-muted">
-              No friend experiences yet
+            <p className="pt-3 text-[13px] leading-[1.35] text-muted">
+              None of your friends have been here yet. Save this place and be
+              the first.
             </p>
           )}
         </div>

@@ -46,38 +46,42 @@ export function ThreadRow({
   avatarSize = 48,
   onClick,
 }: ThreadRowProps) {
+  const hasImages = images.length > 0;
   const className =
-    "flex w-full items-start gap-3 border-none bg-transparent px-0 py-3 text-left outline-none" +
+    "flex w-full flex-col overflow-visible border-none bg-transparent px-0 py-3 text-left outline-none" +
     (onClick ? " active:opacity-70" : "");
 
   const content = (
     <>
-      <Avatar src={user.avatar} name={user.name} size={avatarSize} />
-      <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-baseline gap-1">
-          <span className="truncate tux-p1-semi text-foreground">
-            {user.name}
-          </span>
-          <span className="shrink-0 tux-p2 text-muted">·</span>
-          <span className="shrink-0 tux-p2 text-muted">{time}</span>
-        </div>
-        {text ? (
-          <p className="tux-p1 mt-0.5 whitespace-pre-wrap text-foreground">
-            {text}
-          </p>
-        ) : null}
-        {placeName && showPlaceName ? (
-          <div className="mt-1 flex min-w-0 items-center gap-1 text-muted">
-            <span className="truncate tux-p2">{placeName}</span>
-            {onClick ? <IconChevronRight /> : null}
+      <div className="flex w-full items-start gap-3 overflow-visible">
+        <Avatar src={user.avatar} name={user.name} size={avatarSize} />
+        <div className="min-w-0 flex-1 overflow-visible">
+          <div className="flex min-w-0 items-baseline gap-1">
+            <span className="truncate tux-p1-semi text-foreground">
+              {user.name}
+            </span>
+            <span className="shrink-0 tux-p2 text-muted">·</span>
+            <span className="shrink-0 tux-p2 text-muted">{time}</span>
           </div>
-        ) : null}
-        {images.length > 0 ? (
-          <ActivityPlaceImages
-            images={images}
-            placeName={placeName ?? "Place"}
-          />
-        ) : null}
+          {text ? (
+            <p className="tux-p1 mt-0.5 whitespace-pre-wrap text-foreground">
+              {text}
+            </p>
+          ) : null}
+          {placeName && showPlaceName ? (
+            <div className="mt-1 flex min-w-0 items-center gap-1 text-muted">
+              <span className="truncate tux-p2">{placeName}</span>
+              {onClick ? <IconChevronRight /> : null}
+            </div>
+          ) : null}
+          {hasImages ? (
+            <ActivityPlaceImages
+              images={images}
+              placeName={placeName ?? "Place"}
+              variant="scatter"
+            />
+          ) : null}
+        </div>
       </div>
     </>
   );

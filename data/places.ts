@@ -27,7 +27,7 @@ export const places: Place[] = [
   },
   {
     id: "latteria-mozzarella",
-    name: "Latteria Mozzarella",
+    name: "Rappu",
     latitude: 1.3048,
     longitude: 103.832,
     category: "Restaurant",

@@ -76,7 +76,7 @@ export function SocialMarker({
         <ThoughtBubble thought={bubbleThought} typing={showTyping} />
       ) : null}
 
-      <StickerMarkerIcon src={markerIcon} size={40} />
+      <StickerMarkerIcon src={markerIcon} size={selected ? 48 : 40} />
 
       <p
         className="marker-label tux-small-1-semi mt-0.5 max-w-[140px] truncate text-center"

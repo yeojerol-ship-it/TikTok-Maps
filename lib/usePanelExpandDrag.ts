@@ -86,12 +86,33 @@ export function usePanelExpandDrag(options: ExpandDragOptions) {
         return;
       }
 
+      if (!ignoreScroll) {
+        const target = e.target instanceof Element ? e.target : null;
+        // Horizontal image carousels own the gesture.
+        if (target?.closest("[data-place-images-carousel]")) return;
+
+        const scroller = closestSheetScroller(
+          e.target,
+          current.rootRef.current,
+        );
+        if (scroller) {
+          const canScrollDown =
+            scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop >
+            1;
+          const canScrollUp = scroller.scrollTop > 1;
+          // Let the sheet scroller consume vertical drags while content overflows.
+          if (delta > 0 && canScrollDown) return;
+          if (delta < 0 && canScrollUp) return;
+        }
+      }
+
       if (delta > PANEL_DRAG_THRESHOLD_PX) {
         dragging.current = false;
         suppressClick.current = true;
         current.onExpand();
       } else if (delta < -PANEL_DRAG_THRESHOLD_PX) {
         dragging.current = false;
+        suppressClick.current = true;
         current.onRestDragDown?.();
       }
     },
@@ -118,7 +139,7 @@ export function usePanelExpandDrag(options: ExpandDragOptions) {
   };
 
   const contentProps = {
-    onPointerDown: onPointerDown(!expanded),
+    onPointerDown: onPointerDown(false),
     onPointerMove: onPointerMove(false),
     onPointerUp,
     onPointerCancel: onPointerUp,
@@ -128,14 +149,28 @@ export function usePanelExpandDrag(options: ExpandDragOptions) {
   const onWheel = useCallback((e: WheelEvent) => {
     const current = optionsRef.current;
     if (!current.enabled) return;
+    const scroller = closestSheetScroller(e.target, current.rootRef.current);
+
     if (!current.expanded) {
+      // Prefer scrolling overflow content (e.g. image carousels) before expanding.
+      if (scroller) {
+        const canScrollDown =
+          scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop > 1;
+        const canScrollUp = scroller.scrollTop > 1;
+        if ((e.deltaY > 0 && canScrollDown) || (e.deltaY < 0 && canScrollUp)) {
+          return;
+        }
+      }
       if (e.deltaY > 0) {
         e.preventDefault();
         current.onExpand();
+      } else if (e.deltaY < 0) {
+        e.preventDefault();
+        current.onRestDragDown?.();
       }
       return;
     }
-    const scroller = closestSheetScroller(e.target, current.rootRef.current);
+
     if ((!scroller || scroller.scrollTop <= 0) && e.deltaY < 0) {
       e.preventDefault();
       current.onCollapse();

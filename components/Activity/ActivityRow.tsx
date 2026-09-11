@@ -1,7 +1,7 @@
 "use client";
 
 import { ActivityItem } from "@/lib/types";
-import { getPlaceActivityImages } from "@/data/activityImages";
+import { getInteractionActivityImages } from "@/data/activityImages";
 import { formatRelativeTime, getActivityText } from "@/lib/selectors";
 import { ThreadRow } from "./ThreadRow";
 
@@ -15,7 +15,7 @@ export function ActivityRow({ item, onClick }: ActivityRowProps) {
   const time = formatRelativeTime(item.interaction.createdAt);
   const images =
     item.interaction.type === "REVIEWED"
-      ? getPlaceActivityImages(item.place.id)
+      ? getInteractionActivityImages(item.interaction.id, item.place.id)
       : [];
 
   return (

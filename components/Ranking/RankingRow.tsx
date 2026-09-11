@@ -31,7 +31,7 @@ export function RankingRow({ entry }: RankingRowProps) {
       <p
         className="min-w-0 flex-1 truncate tux-p1-semi text-foreground"
       >
-        {entry.isCurrentUser ? "You" : entry.user.name}
+        {entry.user.name}
       </p>
       <p className="shrink-0 text-[16px] font-bold tabular-nums leading-none text-foreground">
         {entry.placesVisited}

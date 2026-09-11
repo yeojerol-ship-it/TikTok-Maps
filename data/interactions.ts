@@ -108,7 +108,7 @@ export const interactions: PlaceInteraction[] = [
     placeId: "latteria-mozzarella",
     type: "REVIEWED",
     comment:
-      "Great for a date night — cozy corner booths and soft lighting.\nThe burrata and natural wine list are hard to beat.",
+      "Great for a date night — cozy corner booths and soft lighting. The burrata and natural wine list are hard to beat.",
     createdAt: "2026-09-09T05:00:00",
   },
   {

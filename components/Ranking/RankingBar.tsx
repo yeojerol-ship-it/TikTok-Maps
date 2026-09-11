@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RankingEntry } from "@/lib/types";
 import { Avatar } from "@/components/Avatar/Avatar";
 
@@ -21,50 +21,12 @@ const CLUSTER_OVERLAP_PX = 4;
 const CLUSTER_GAP_PX = 6;
 const SAFE_ZONE_PX = 8;
 
-function arcPath(
-  cx: number,
-  cy: number,
-  r: number,
-  startDeg: number,
-  endDeg: number,
-) {
-  const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
-  const sx = cx + r * Math.cos(rad(startDeg));
-  const sy = cy + r * Math.sin(rad(startDeg));
-  const ex = cx + r * Math.cos(rad(endDeg));
-  const ey = cy + r * Math.sin(rad(endDeg));
-  const large = endDeg - startDeg > 180 ? 1 : 0;
-  return `M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
-}
-
-/** Thick cursive #N wrapping the right side of the current-user avatar. */
-function YouRankArc({ rank, size }: { rank: number; size: number }) {
-  const rawId = useId();
-  const pathId = `you-rank-arc-${rawId.replace(/:/g, "")}`;
-  const pad = 12;
-  const box = size + pad * 2;
-  const cx = box / 2;
-  const cy = box / 2;
-  const r = size / 2 + 1;
-  const d = arcPath(cx, cy, r, 8, 172);
-
+/** Rank digit overlapping the current-user avatar at the bottom-right. */
+function YouRankLabel({ rank }: { rank: number }) {
   return (
-    <svg
-      className="bump-ranking-bar__you-rank"
-      width={box}
-      height={box}
-      viewBox={`0 0 ${box} ${box}`}
-      aria-hidden
-    >
-      <defs>
-        <path id={pathId} d={d} fill="none" />
-      </defs>
-      <text dominantBaseline="middle">
-        <textPath href={`#${pathId}`} startOffset="22%">
-          #{rank}
-        </textPath>
-      </text>
-    </svg>
+    <span className="bump-ranking-bar__you-rank" aria-hidden>
+      #{rank}
+    </span>
   );
 }
 
@@ -261,22 +223,22 @@ export function RankingBar({
       <div
         className={`map-chrome relative h-full w-full overflow-visible ${hidden ? "map-chrome--hidden" : ""}`}
       >
-      <div
-        className="bump-ranking-bar absolute inset-y-0 left-1/2 overflow-hidden"
-        style={{
-          width: BAR_WIDTH_PX,
-          marginLeft: -BAR_WIDTH_PX / 2,
-        }}
-      >
-        {fillHeight > 0 ? (
-          <div
-            className="bump-ranking-bar__fill"
-            style={{ height: fillHeight }}
-          />
-        ) : null}
-      </div>
+        <div
+          className="bump-ranking-bar absolute inset-y-0 left-1/2 overflow-hidden"
+          style={{
+            width: BAR_WIDTH_PX,
+            marginLeft: -BAR_WIDTH_PX / 2,
+          }}
+        >
+          {fillHeight > 0 ? (
+            <div
+              className="bump-ranking-bar__fill"
+              style={{ height: fillHeight }}
+            />
+          ) : null}
+        </div>
 
-      <div ref={trackRef} className="relative h-full w-full overflow-visible">
+        <div ref={trackRef} className="relative h-full w-full overflow-visible">
         {laidOut.map((item, index) => {
           const isYou = Boolean(item.entry.isCurrentUser);
 
@@ -305,9 +267,7 @@ export function RankingBar({
                     isYou ? "shadow-[0_2px_8px_rgba(0,0,0,0.16)]" : ""
                   }
                 />
-                {isYou ? (
-                  <YouRankArc rank={item.entry.rank} size={item.avatar} />
-                ) : null}
+                {isYou ? <YouRankLabel rank={item.entry.rank} /> : null}
               </div>
             </div>
           );

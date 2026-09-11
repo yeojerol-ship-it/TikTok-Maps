@@ -242,26 +242,35 @@ body {
 
 .bump-ranking-bar {
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.38);
-  border: 1px solid rgba(255, 255, 255, 0.82);
+  /* Clean frosted glass — neutral only, no spectral tint */
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.38) 55%,
+    rgba(255, 255, 255, 0.48) 100%
+  );
   box-shadow:
     0 8px 28px oklch(0 0 0 / 0.1),
-    0 1px 0 rgba(255, 255, 255, 0.95) inset;
-  backdrop-filter: blur(34px) saturate(2.15) brightness(1.1) contrast(1.08);
-  -webkit-backdrop-filter: blur(34px) saturate(2.15) brightness(1.1) contrast(1.08);
+    0 1px 0 rgba(255, 255, 255, 0.92) inset,
+    inset 0 -1px 1px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(28px) saturate(1.55);
+  -webkit-backdrop-filter: blur(28px) saturate(1.55);
 }
 
-.bump-ranking-bar::after {
+/* Soft monochrome highlight rim — refraction feel without color split */
+.bump-ranking-bar::before {
   content: "";
   position: absolute;
-  inset: 2px;
+  inset: 0;
   border-radius: inherit;
   pointer-events: none;
+  z-index: 0;
   background: linear-gradient(
-    108deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.12) 26%,
-    transparent 58%
+    155deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.08) 28%,
+    transparent 55%
   );
 }
 
@@ -274,6 +283,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 2;
   overflow: hidden;
   transform-origin: center bottom;
   background: linear-gradient(
@@ -311,28 +321,23 @@ body {
 
 .bump-ranking-bar__you-rank {
   position: absolute;
-  left: 50%;
-  top: 50%;
+  right: -7px;
+  bottom: -5px;
   z-index: 2;
   overflow: visible;
   pointer-events: none;
-  transform: translate(-50%, -50%) rotate(-20deg) translate(2px, -1px);
-  filter: drop-shadow(0 0.5px 0.6px rgba(0, 0, 0, 0.22));
-}
-
-.bump-ranking-bar__you-rank text {
-  font-family: "Snell Roundhand", "Apple Chancery", "Segoe Script",
-    "Palatino Linotype", Palatino, cursive;
-  font-size: 16px;
-  font-weight: 700;
+  transform: rotate(-14deg);
+  font-family: "TikTok Sans", var(--tux-font);
+  font-size: 13px;
+  font-weight: 800;
   font-style: italic;
-  fill: #121212;
-  stroke: #ffffff;
-  stroke-width: 4.5px;
-  stroke-linejoin: round;
-  stroke-linecap: round;
+  font-synthesis: style;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #121212;
+  -webkit-text-stroke: 3.5px #ffffff;
   paint-order: stroke fill;
-  letter-spacing: 0.03em;
+  filter: drop-shadow(0 0.5px 0.6px rgba(0, 0, 0, 0.22));
 }
 
 @keyframes ranking-stage-in {
@@ -463,7 +468,11 @@ body {
   display: flex;
   min-height: 0;
   flex-direction: column;
-  overflow: hidden;
+  /* Prefer x-visible so scatter shadows aren’t shaved at pane edges;
+     y stays clipped for tab-pane slide. (If y isn’t visible, x may
+     compute to auto — ActivityFeed still pads for shadow room.) */
+  overflow-x: visible;
+  overflow-y: hidden;
   transition:
     transform 0.34s var(--ease-out),
     opacity 0.28s var(--ease-out);
@@ -495,6 +504,93 @@ body {
   transition:
     height 0.32s var(--ease-in),
     max-height 0.32s var(--ease-in);
+}
+
+.poi-corner-peel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 6;
+  width: 76px;
+  height: 76px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.poi-corner-peel__svg {
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.poi-corner-peel__glyph {
+  /* Triangle centroid of A(60,0) B(0,0) C(60,60) */
+  position: absolute;
+  top: 33.3%;
+  left: 66.7%;
+  display: flex;
+  transform: translate(calc(-50% - 2px), calc(-50% + 8px));
+  color: #8b9098;
+  pointer-events: none;
+  transition:
+    color 0.24s var(--ease-out),
+    filter 0.24s var(--ease-out);
+}
+
+.poi-corner-peel__glyph-pop {
+  display: flex;
+}
+
+.poi-corner-peel--saved .poi-corner-peel__glyph {
+  color: #ffffff;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.55))
+    drop-shadow(0 0 7px rgba(255, 200, 220, 0.35));
+}
+
+.poi-corner-peel--saved .poi-corner-peel__glyph-pop {
+  /* Scale-only pop — translate stays on the outer glyph so position never jumps */
+  animation: poi-corner-bookmark-pop 0.38s var(--ease-out);
+}
+
+@keyframes poi-corner-bookmark-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  55% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Current-user avatar entrance into “N saved” SocialPill stack */
+.saved-avatar-pop {
+  transform-origin: center;
+  animation: saved-avatar-pop 0.32s var(--ease-out) both;
+}
+
+@keyframes saved-avatar-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.poi-corner-peel--saved .poi-corner-peel__back {
+  filter: drop-shadow(0 2px 8px rgba(254, 44, 85, 0.22));
 }
 
 .place-panel--max {
@@ -610,9 +706,13 @@ body {
   transition-timing-function: var(--ease-in);
 }
 
-.sheet-stage:not(.sheet-stage--expanded) [data-sheet-scroll],
-.place-panel:not(.place-panel--max) [data-sheet-scroll] {
+.sheet-stage:not(.sheet-stage--expanded) [data-sheet-scroll] {
   overflow-y: hidden;
+}
+
+.place-panel [data-sheet-scroll] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .sheet-stage--expanded [data-sheet-scroll],
@@ -644,8 +744,17 @@ body {
   .poi-pin--enter,
   .poi-pin--exit,
   .poi-compass--enter,
-  .poi-compass--exit {
+  .poi-compass--exit,
+  .poi-corner-peel {
     animation: ranking-fade-in 0.2s ease-out both;
+  }
+
+  .poi-corner-peel--saved .poi-corner-peel__glyph-pop {
+    animation: none;
+  }
+
+  .saved-avatar-pop {
+    animation: none;
   }
 
   .map-chrome {

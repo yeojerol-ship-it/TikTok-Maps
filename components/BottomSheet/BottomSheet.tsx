@@ -118,7 +118,7 @@ export function BottomSheet({
         </div>
       )}
       <div
-        className={`relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden ${grabberOverlay ? "pt-8" : ""} ${expanded ? "" : "touch-none"}`}
+        className={`relative z-10 flex min-h-0 flex-1 flex-col overflow-x-visible overflow-y-hidden ${grabberOverlay ? "pt-8" : ""} ${expanded ? "" : "touch-none"}`}
         {...contentProps}
       >
         {children}

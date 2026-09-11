@@ -292,7 +292,7 @@ export function getPlaceExperiences(placeId: string): PlaceExperience[] {
 
     experiences.push({
       user,
-      text: "Been here",
+      text: "Been here. Stopped by after work and ended up staying longer than planned — cozy vibe, easy to bring friends next time.",
       images: getPlaceActivityImages(placeId),
       createdAt: been.createdAt,
     });
