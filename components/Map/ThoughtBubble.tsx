@@ -21,7 +21,7 @@ function getThoughtText(thought: PlaceInteraction) {
 }
 
 const bubbleShellClass =
-  "flex w-fit max-w-[168px] items-center rounded-2xl border border-border bg-bg text-left";
+  "flex w-fit max-w-[168px] items-center border border-border bg-bg text-left";
 
 const MARKED_AVATAR_MAX = 3;
 
@@ -49,9 +49,13 @@ export function ThoughtBubble({
     >
       <div
         className={`${bubbleShellClass} ${
+          showMarked ? "rounded-full" : "rounded-2xl"
+        } ${
           typing
             ? "h-9 justify-center gap-1 px-3 py-2"
-            : "gap-2 px-2.5 py-2"
+            : showMarked
+              ? "gap-1.5 px-2 py-1.5"
+              : "gap-2 px-2.5 py-2"
         }`}
         style={{ boxShadow: "0 2px 10px rgba(0, 0, 0, 0.08)" }}
         aria-label={
@@ -70,7 +74,7 @@ export function ThoughtBubble({
           </>
         ) : showMarked ? (
           <>
-            <AvatarStack users={visibleMarked} max={MARKED_AVATAR_MAX} size={22} />
+            <AvatarStack users={visibleMarked} max={MARKED_AVATAR_MAX} size={18} />
             <p className="shrink-0 tux-small-1 text-foreground">
               {markedCount} marked
             </p>

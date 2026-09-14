@@ -20,6 +20,7 @@ import {
   animate3dBuildings,
   MAP_CAMERA_2D,
   MAP_CAMERA_3D,
+  MAP_STYLE_CONFIG,
   MAP_STYLE_URL,
   SELECTED_POI_CAMERA,
   setup2dMap,
@@ -319,8 +320,9 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
   const handleMapLoad = useCallback(
     (event: { target: MapboxMap }) => {
       const map = event.target;
+      // Config already disables 3D at construction; reinforce once (not on
+      // styledata — that loop blanks the map / kills POI buildings).
       setup2dMap(map);
-      map.on("styledata", () => setup2dMap(map));
       centerOnFocus();
       updateVisiblePlaces();
       map.on("move", scheduleVisiblePlacesUpdate);
@@ -347,15 +349,23 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
     const container = containerRef.current;
     if (!container) return;
 
+    let frame: number | null = null;
     const resize = () => {
-      mapRef.current?.resize();
-      updateVisiblePlaces();
+      if (frame !== null) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = null;
+        mapRef.current?.resize();
+        updateVisiblePlaces();
+      });
     };
     resize();
 
     const observer = new ResizeObserver(resize);
     observer.observe(container);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
   }, [updateVisiblePlaces]);
 
   const handleSelect = useCallback(
@@ -388,9 +398,15 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
         initialViewState={initialViewState}
         mapStyle={MAP_STYLE_URL}
         style={{ width: "100%", height: "100%" }}
-        antialias
         attributionControl={false}
+        maxTileCacheSize={50}
         onLoad={handleMapLoad}
+        {...({
+          // Disable Standard 3D before first paint — zoom ~16 extrusions can
+          // OOM ("Array buffer allocation failed") and blank the basemap.
+          // react-map-gl Map props omit `config` in typings; Mapbox accepts it.
+          config: MAP_STYLE_CONFIG,
+        } as object)}
       >
         {displayedPlaces.map((place) => {
           const offset = markerOffsets.get(place.id);

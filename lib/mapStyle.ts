@@ -4,6 +4,14 @@ import type { Expression, Map as MapboxMap } from "mapbox-gl";
 export const MAP_STYLE_URL =
   "mapbox://styles/jerolyeo/cmtub466s005c01qy1i96fo7u";
 
+/** Initial Standard basemap config — keep 3D off until a POI is selected. */
+export const MAP_STYLE_CONFIG = {
+  basemap: {
+    show3dBuildings: false,
+    show3dObjects: false,
+  },
+} as const;
+
 const BUILDINGS_LAYER_ID = "3d-buildings";
 
 /** Default map — flat top-down before a POI is opened. */
@@ -61,7 +69,16 @@ const BUILDINGS_BASE_EXPRESSION: Expression = [
 /** Flat map on load — buildings layer exists but extruded height stays at zero. */
 export function setup2dMap(map: MapboxMap) {
   setStandard3dBuildingsVisible(map, false);
-  ensureComposite3dBuildingsLayer(map, { extruded: false });
+  // Only add a composite fill-extrusion fallback when the style is NOT
+  // Mapbox Standard. Mixing streets-v8 / composite extrusions into Standard
+  // has blanked this map before and can explode WebGL buffers.
+  const style = map.getStyle();
+  const hasStandardImport = style?.imports?.some(
+    (entry) => entry.id === STANDARD_BASEMAP_IMPORT_ID,
+  );
+  if (!hasStandardImport) {
+    ensureComposite3dBuildingsLayer(map, { extruded: false });
+  }
 }
 
 /** Animate extruded buildings in or out when a POI is opened / closed. */
@@ -71,7 +88,14 @@ export function animate3dBuildings(
   duration: number = SELECTED_POI_CAMERA.buildingsDurationMs,
 ) {
   setStandard3dBuildingsVisible(map, visible);
-  ensureComposite3dBuildingsLayer(map, { extruded: false });
+
+  const style = map.getStyle();
+  const hasStandardImport = style?.imports?.some(
+    (entry) => entry.id === STANDARD_BASEMAP_IMPORT_ID,
+  );
+  if (!hasStandardImport) {
+    ensureComposite3dBuildingsLayer(map, { extruded: false });
+  }
 
   if (!map.getLayer(BUILDINGS_LAYER_ID)) return;
 
@@ -118,16 +142,31 @@ function setStandard3dBuildingsVisible(map: MapboxMap, visible: boolean) {
   if (!hasStandardImport) return;
 
   try {
-    map.setConfigProperty(
+    // Skip no-op config writes — each setConfigProperty can reload Standard
+    // style data and thrash WebGL buffers if called in a loop.
+    const currentBuildings = map.getConfigProperty(
       STANDARD_BASEMAP_IMPORT_ID,
       "show3dBuildings",
-      visible,
     );
-    map.setConfigProperty(
+    const currentObjects = map.getConfigProperty(
       STANDARD_BASEMAP_IMPORT_ID,
       "show3dObjects",
-      visible,
     );
+
+    if (currentBuildings !== visible) {
+      map.setConfigProperty(
+        STANDARD_BASEMAP_IMPORT_ID,
+        "show3dBuildings",
+        visible,
+      );
+    }
+    if (currentObjects !== visible) {
+      map.setConfigProperty(
+        STANDARD_BASEMAP_IMPORT_ID,
+        "show3dObjects",
+        visible,
+      );
+    }
     if (visible) {
       map.setConfigProperty(
         STANDARD_BASEMAP_IMPORT_ID,
