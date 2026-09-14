@@ -74,15 +74,18 @@ export function ThreadRow({
               {onClick ? <IconChevronRight /> : null}
             </div>
           ) : null}
-          {hasImages ? (
-            <ActivityPlaceImages
-              images={images}
-              placeName={placeName ?? "Place"}
-              variant="scatter"
-            />
-          ) : null}
         </div>
       </div>
+      {hasImages ? (
+        <div className="overflow-visible pl-[60px]">
+          <ActivityPlaceImages
+            images={images}
+            placeName={placeName ?? "Place"}
+            variant="scatter"
+            bleedEnd
+          />
+        </div>
+      ) : null}
     </>
   );
 

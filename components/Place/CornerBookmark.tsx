@@ -2,6 +2,39 @@
 
 import { useId } from "react";
 
+/** Panel corner radius (28px), in viewBox units at the rendered 76px scale. */
+const PANEL_CORNER_R = 23.6;
+
+const FOLD_CONTROL = "31.5 33";
+
+function buildBackPath() {
+  return (
+    `M -12 0 ` +
+    `H ${64 - PANEL_CORNER_R} ` +
+    `A ${PANEL_CORNER_R} ${PANEL_CORNER_R} 0 0 1 64 ${PANEL_CORNER_R} ` +
+    `V 74 ` +
+    `Q ${FOLD_CONTROL} -12 0 ` +
+    `Z`
+  );
+}
+
+function buildCurlPath() {
+  return (
+    `M -12 0 ` +
+    `Q ${FOLD_CONTROL} 64 74 ` +
+    `Q 33 56.5 6.5 57.5 ` +
+    `Q 3.5 56 2.5 52.5 ` +
+    `Q 6.5 30.5 -12 0 ` +
+    `Z`
+  );
+}
+
+function buildCurlEdge() {
+  return (
+    `M 64 74 Q 33 56.5 6.5 57.5 Q 3.5 56 2.5 52.5 Q 6.5 30.5 -12 0`
+  );
+}
+
 interface CornerBookmarkProps {
   saved: boolean;
   onToggle: () => void;
@@ -63,14 +96,12 @@ function BookmarkGlyph({
         </filter>
       </defs>
 
-      {/* Soft outer bloom */}
       <path
         d={path}
         fill="#ffffff"
         opacity="0.55"
         filter={`url(#${glowId})`}
       />
-      {/* Hollow rim — bright edge, softer center reading */}
       <path
         d={path}
         fill={`url(#${fillId})`}
@@ -102,36 +133,9 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
     glyphGlow: `peel-glyph-glow-${uid}`,
   };
 
-  /** Panel corner radius (28px), expressed in viewBox units at the rendered 76px scale. */
-  const R = 23.6;
-
-  /** Fold edge B(-12,0) → C(64,74): nudged outward so the glyph keeps clearance. */
-  const foldControl = "31.5 33";
-
-  /** Exposed back sheet: B(-12,0) → panel corner arc → C(64,74). */
-  const backPath =
-    `M -12 0 ` +
-    `H ${64 - R} ` +
-    `A ${R} ${R} 0 0 1 64 ${R} ` +
-    `V 74 ` +
-    `Q ${foldControl} -12 0 ` +
-    `Z`;
-
-  /**
-   * Peeled front corner — a partial fold: the tip sits ~30% short of a full
-   * reflection of corner A, so the triangle reads natural rather than maximal.
-   */
-  const curlPath =
-    `M -12 0 ` +
-    `Q ${foldControl} 64 74 ` +
-    `Q 33 56.5 6.5 57.5 ` +
-    `Q 3.5 56 2.5 52.5 ` +
-    `Q 6.5 30.5 -12 0 ` +
-    `Z`;
-
-  /** Free edges of the flap, for the edge definition against the panel. */
-  const curlEdge =
-    `M 64 74 Q 33 56.5 6.5 57.5 Q 3.5 56 2.5 52.5 Q 6.5 30.5 -12 0`;
+  const backPath = buildBackPath();
+  const curlPath = buildCurlPath();
+  const curlEdge = buildCurlEdge();
 
   return (
     <button
@@ -152,7 +156,6 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
         aria-hidden
       >
         <defs>
-          {/* Back sheet, unsaved — barely off-white */}
           <linearGradient
             id={ids.back}
             x1="64"
@@ -165,7 +168,6 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
             <stop offset="100%" stopColor="#e4e6ea" />
           </linearGradient>
 
-          {/* Back sheet, saved — pink with glow toward the outer corner */}
           <linearGradient
             id={ids.pink}
             x1="64"
@@ -192,7 +194,6 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
             <stop offset="100%" stopColor="#fe2c55" stopOpacity="0" />
           </radialGradient>
 
-          {/* White curl — front sheet underside catching light */}
           <linearGradient
             id={ids.curl}
             x1="51"
@@ -219,7 +220,6 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
 
-          {/* Soft pink bounce light onto the flap when the back sheet is saved */}
           <linearGradient
             id={ids.curlReflect}
             x1="48"
@@ -252,7 +252,6 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
           </filter>
         </defs>
 
-        {/* Back sheet — pink when saved */}
         <path
           className="poi-corner-peel__back"
           d={backPath}
@@ -260,9 +259,7 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
         />
         {saved ? <path d={backPath} fill={`url(#${ids.pinkGlow})`} /> : null}
 
-        {/* Flap — hinged on the fold line, peels further inward when saved */}
         <g className="poi-corner-peel__flap">
-          {/* Shadow the curl casts onto the panel */}
           <path
             className="poi-corner-peel__shadow"
             d={curlPath}
@@ -270,8 +267,6 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
             filter={`url(#${ids.shadow})`}
             opacity={saved ? 1 : 0.88}
           />
-
-          {/* Peeled white curl */}
           <path
             className="poi-corner-peel__curl"
             d={curlPath}
@@ -281,8 +276,6 @@ export function CornerBookmark({ saved, onToggle }: CornerBookmarkProps) {
           {saved ? (
             <path d={curlPath} fill={`url(#${ids.curlReflect})`} />
           ) : null}
-
-          {/* Soft free-edge hairline — barely there so the flap still reads */}
           <path
             d={curlEdge}
             fill="none"

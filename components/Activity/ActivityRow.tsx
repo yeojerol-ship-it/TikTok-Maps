@@ -13,10 +13,14 @@ interface ActivityRowProps {
 export function ActivityRow({ item, onClick }: ActivityRowProps) {
   const text = getActivityText(item.interaction);
   const time = formatRelativeTime(item.interaction.createdAt);
-  const images =
-    item.interaction.type === "REVIEWED"
-      ? getInteractionActivityImages(item.interaction.id, item.place.id)
-      : [];
+  const images = getInteractionActivityImages(
+    item.interaction.id,
+    item.place.id,
+  );
+  const showImages =
+    images.length > 0 &&
+    (item.interaction.type === "REVIEWED" ||
+      (item.interaction.type === "BEEN" && Boolean(item.interaction.comment)));
 
   return (
     <ThreadRow
@@ -24,7 +28,7 @@ export function ActivityRow({ item, onClick }: ActivityRowProps) {
       time={time}
       text={text || undefined}
       placeName={item.place.name}
-      images={images}
+      images={showImages ? images : []}
       onClick={onClick}
     />
   );

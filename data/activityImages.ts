@@ -19,6 +19,7 @@ export const PLACE_ACTIVITY_IMAGES: Record<string, string[]> = {
   "marina-bay-sands": ["/activity/places/place-1.png"],
   "swee-choon": ["/activity/places/place-2.png", "/activity/places/place-3.png"],
   "lau-pa-sat": ["/activity/places/place-4.png"],
+  "ion-orchard": ["/activity/places/place-1.png", "/activity/places/place-3.png"],
 };
 
 /** Per-post images when a friend review needs its own gallery. */
@@ -33,6 +34,18 @@ export const INTERACTION_ACTIVITY_IMAGES: Record<string, string[]> = {
     "/reviews/handrolls-green-plate.jpg",
     "/reviews/salmon-tempura-handroll.jpg",
   ],
+  i60: [
+    "/reviews/beef-tartare.jpg",
+    "/reviews/appetizers-platter.jpg",
+    "/reviews/sea-grapes-bowl.jpg",
+  ],
+  i62: [
+    "/reviews/beef-tartare.jpg",
+    "/reviews/appetizers-platter.jpg",
+    "/reviews/sea-grapes-bowl.jpg",
+  ],
+  i24r: ["/activity/places/place-1.png", "/activity/places/place-3.png"],
+  i25r: ["/activity/places/place-2.png", "/activity/places/place-4.png"],
 };
 
 export function getPlaceActivityImages(placeId: string): string[] {

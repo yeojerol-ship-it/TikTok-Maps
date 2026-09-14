@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_MAP_PLACE_ID } from "@/data/featuredPlaces";
 import { SocialPlace } from "@/lib/types";
+import { getPlaceMarkerBubble } from "@/lib/selectors";
 import { getMarkerIconPath } from "@/data/markerIcons";
 import { StickerMarkerIcon } from "./StickerMarkerIcon";
 import { ThoughtBubble } from "./ThoughtBubble";
@@ -15,8 +16,6 @@ interface SocialMarkerProps {
   onClick: () => void;
 }
 
-const SPEECH_THOUGHT_TYPES = new Set(["REVIEWED", "WANT_TO_GO"]);
-
 export function SocialMarker({
   place,
   selected,
@@ -27,16 +26,11 @@ export function SocialMarker({
   const isFocusPlace = place.id === DEFAULT_MAP_PLACE_ID;
   const hideBubble = compact || selected;
 
-  const speechThoughts = place.recentThoughts.filter((t) =>
-    SPEECH_THOUGHT_TYPES.has(t.type),
+  const markerBubble = useMemo(
+    () => getPlaceMarkerBubble(place.id),
+    [place.id],
   );
-
-  const focusThoughts = selected
-    ? speechThoughts
-    : speechThoughts.filter((t) => t.type === "REVIEWED");
-
-  const bubbleThought = (isFocusPlace ? focusThoughts : speechThoughts)[0];
-  const hasSpeech = Boolean(bubbleThought);
+  const hasSpeech = Boolean(markerBubble);
   const [speechRevealed, setSpeechRevealed] = useState(isFocusPlace);
 
   useEffect(() => {
@@ -73,7 +67,18 @@ export function SocialMarker({
       style={{ cursor: "pointer" }}
     >
       {showFocusBubble || showOtherBubble ? (
-        <ThoughtBubble thought={bubbleThought} typing={showTyping} />
+        markerBubble?.mode === "marked" ? (
+          <ThoughtBubble
+            markedUsers={markerBubble.users}
+            markedCount={markerBubble.count}
+            typing={showTyping}
+          />
+        ) : (
+          <ThoughtBubble
+            thought={markerBubble?.thought}
+            typing={showTyping}
+          />
+        )
       ) : null}
 
       <StickerMarkerIcon src={markerIcon} size={selected ? 48 : 40} />

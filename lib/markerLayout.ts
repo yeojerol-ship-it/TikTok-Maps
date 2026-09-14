@@ -28,6 +28,14 @@ export const COMPACT_MARKER_LAYOUT_BOX: MarkerLayoutBox = {
   padding: 8,
 };
 
+/** Selected marker: 48px icon + label beneath, geographic anchor at label bottom. */
+export const SELECTED_MARKER_ICON_SIZE = 48;
+export const SELECTED_MARKER_LABEL_HEIGHT = 18;
+
+/** Shift flyTo so the sticker icon (not the label baseline) sits in the visible map band. */
+export const SELECTED_MARKER_FLY_OFFSET_Y =
+  SELECTED_MARKER_LABEL_HEIGHT + SELECTED_MARKER_ICON_SIZE / 2;
+
 /** Max pixel drift from the true geographic anchor. */
 const MAX_OFFSET_PX = 132;
 

@@ -59,3 +59,32 @@ export interface PlaceExperience {
   images: string[];
   createdAt: string;
 }
+
+export type PlaceMarkerBubble =
+  | { mode: "single"; thought: PlaceInteraction }
+  | { mode: "marked"; users: User[]; count: number };
+
+export interface MapVisitState {
+  version: 1;
+  lastMapVisitAt: string | null;
+  placeLastSeenAt: Record<string, string>;
+}
+
+export interface PlaceFreshness {
+  placeId: string;
+  newInteractionCount: number;
+  latestNewAt: string;
+}
+
+export interface PlaceFreshnessBubble {
+  newInteractionCount: number;
+  latestInteraction: PlaceInteraction;
+  freshUsers: User[];
+}
+
+/** Immutable freshness computed once per map entry. */
+export interface MapFreshnessSnapshot {
+  previousVisitAt: string | null;
+  sessionStartedAt: string;
+  freshPlaces: PlaceFreshness[];
+}

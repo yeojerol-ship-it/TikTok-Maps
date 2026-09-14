@@ -1,4 +1,4 @@
-import type { Map as MapboxMap } from "mapbox-gl";
+import type { Expression, Map as MapboxMap } from "mapbox-gl";
 
 /** Published Mapbox style — jerolyeo/cmtub466s005c01qy1i96fo7u */
 export const MAP_STYLE_URL =
@@ -6,19 +6,31 @@ export const MAP_STYLE_URL =
 
 const BUILDINGS_LAYER_ID = "3d-buildings";
 
-/** Bump-style perspective — tilted map with slight rotation. */
-export const MAP_CAMERA = {
+/** Default map — flat top-down before a POI is opened. */
+export const MAP_CAMERA_2D = {
+  bearing: -20,
+  pitch: 0,
+  zoom: 16.2,
+  selectedZoom: 17.35,
+} as const;
+
+/** Selected POI — tilted perspective with extruded buildings. */
+export const MAP_CAMERA_3D = {
   bearing: -20,
   pitch: 48,
   zoom: 16.2,
   selectedZoom: 17.35,
 } as const;
 
+/** @deprecated Use MAP_CAMERA_2D / MAP_CAMERA_3D */
+export const MAP_CAMERA = MAP_CAMERA_3D;
+
 /** Slow orbit while a POI is selected. */
 export const SELECTED_POI_CAMERA = {
   rotationDegreesPerSecond: 2.4,
   flyDurationMs: 780,
   returnDurationMs: 560,
+  buildingsDurationMs: 900,
 } as const;
 
 const STANDARD_BASEMAP_IMPORT_ID = "basemap";
@@ -26,13 +38,79 @@ const STANDARD_BASEMAP_IMPORT_ID = "basemap";
 /** Edit this to change 3D building color (Mapbox Standard + fallback layer). */
 export const MAP_BUILDINGS_COLOR = "#e8e6e1";
 
-/** Adds extruded buildings for the tilted Bump-style camera. */
-export function enable3dBuildings(map: MapboxMap) {
-  enableStandardStyle3dBuildings(map);
-  enableComposite3dBuildings(map);
+const BUILDINGS_HEIGHT_EXPRESSION: Expression = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  15,
+  0,
+  15.05,
+  ["get", "height"],
+];
+
+const BUILDINGS_BASE_EXPRESSION: Expression = [
+  "interpolate",
+  ["linear"],
+  ["zoom"],
+  15,
+  0,
+  15.05,
+  ["get", "min_height"],
+];
+
+/** Flat map on load — buildings layer exists but extruded height stays at zero. */
+export function setup2dMap(map: MapboxMap) {
+  setStandard3dBuildingsVisible(map, false);
+  ensureComposite3dBuildingsLayer(map, { extruded: false });
 }
 
-function enableStandardStyle3dBuildings(map: MapboxMap) {
+/** Animate extruded buildings in or out when a POI is opened / closed. */
+export function animate3dBuildings(
+  map: MapboxMap,
+  visible: boolean,
+  duration: number = SELECTED_POI_CAMERA.buildingsDurationMs,
+) {
+  setStandard3dBuildingsVisible(map, visible);
+  ensureComposite3dBuildingsLayer(map, { extruded: false });
+
+  if (!map.getLayer(BUILDINGS_LAYER_ID)) return;
+
+  const transition = { duration, delay: visible ? 140 : 0 };
+
+  map.setPaintProperty(
+    BUILDINGS_LAYER_ID,
+    "fill-extrusion-height-transition",
+    transition,
+  );
+  map.setPaintProperty(
+    BUILDINGS_LAYER_ID,
+    "fill-extrusion-base-transition",
+    transition,
+  );
+  map.setPaintProperty(
+    BUILDINGS_LAYER_ID,
+    "fill-extrusion-opacity-transition",
+    transition,
+  );
+
+  map.setPaintProperty(
+    BUILDINGS_LAYER_ID,
+    "fill-extrusion-height",
+    visible ? BUILDINGS_HEIGHT_EXPRESSION : 0,
+  );
+  map.setPaintProperty(
+    BUILDINGS_LAYER_ID,
+    "fill-extrusion-base",
+    visible ? BUILDINGS_BASE_EXPRESSION : 0,
+  );
+  map.setPaintProperty(
+    BUILDINGS_LAYER_ID,
+    "fill-extrusion-opacity",
+    visible ? 0.72 : 0,
+  );
+}
+
+function setStandard3dBuildingsVisible(map: MapboxMap, visible: boolean) {
   const style = map.getStyle();
   const hasStandardImport = style?.imports?.some(
     (entry) => entry.id === STANDARD_BASEMAP_IMPORT_ID,
@@ -40,19 +118,32 @@ function enableStandardStyle3dBuildings(map: MapboxMap) {
   if (!hasStandardImport) return;
 
   try {
-    map.setConfigProperty(STANDARD_BASEMAP_IMPORT_ID, "show3dBuildings", true);
-    map.setConfigProperty(STANDARD_BASEMAP_IMPORT_ID, "show3dObjects", true);
     map.setConfigProperty(
       STANDARD_BASEMAP_IMPORT_ID,
-      "colorBuildings",
-      MAP_BUILDINGS_COLOR,
+      "show3dBuildings",
+      visible,
     );
+    map.setConfigProperty(
+      STANDARD_BASEMAP_IMPORT_ID,
+      "show3dObjects",
+      visible,
+    );
+    if (visible) {
+      map.setConfigProperty(
+        STANDARD_BASEMAP_IMPORT_ID,
+        "colorBuildings",
+        MAP_BUILDINGS_COLOR,
+      );
+    }
   } catch {
     /* config API unavailable for this style version */
   }
 }
 
-function enableComposite3dBuildings(map: MapboxMap) {
+function ensureComposite3dBuildingsLayer(
+  map: MapboxMap,
+  { extruded }: { extruded: boolean },
+) {
   if (map.getLayer(BUILDINGS_LAYER_ID)) return;
 
   const style = map.getStyle();
@@ -76,25 +167,9 @@ function enableComposite3dBuildings(map: MapboxMap) {
       minzoom: 15,
       paint: {
         "fill-extrusion-color": MAP_BUILDINGS_COLOR,
-        "fill-extrusion-height": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          15,
-          0,
-          15.05,
-          ["get", "height"],
-        ],
-        "fill-extrusion-base": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          15,
-          0,
-          15.05,
-          ["get", "min_height"],
-        ],
-        "fill-extrusion-opacity": 0.72,
+        "fill-extrusion-height": extruded ? BUILDINGS_HEIGHT_EXPRESSION : 0,
+        "fill-extrusion-base": extruded ? BUILDINGS_BASE_EXPRESSION : 0,
+        "fill-extrusion-opacity": extruded ? 0.72 : 0,
       },
     },
     labelLayerId,

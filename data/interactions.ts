@@ -89,45 +89,6 @@ export const interactions: PlaceInteraction[] = [
     createdAt: "2026-09-08T12:00:00",
   },
   {
-    id: "i12a",
-    userId: "sarah",
-    placeId: "latteria-mozzarella",
-    type: "WANT_TO_GO",
-    createdAt: "2026-09-08T18:00:00",
-  },
-  {
-    id: "i12b",
-    userId: "jamie",
-    placeId: "latteria-mozzarella",
-    type: "WANT_TO_GO",
-    createdAt: "2026-09-08T17:00:00",
-  },
-  {
-    id: "i13",
-    userId: "rachel",
-    placeId: "latteria-mozzarella",
-    type: "REVIEWED",
-    comment:
-      "Great for a date night — cozy corner booths and soft lighting. The burrata and natural wine list are hard to beat.",
-    createdAt: "2026-09-09T05:00:00",
-  },
-  {
-    id: "i14",
-    userId: "rachel",
-    placeId: "latteria-mozzarella",
-    type: "BEEN",
-    createdAt: "2026-09-09T04:30:00",
-  },
-  {
-    id: "i15",
-    userId: "daniel",
-    placeId: "latteria-mozzarella",
-    type: "REVIEWED",
-    comment:
-      "Sunday brunch spot — the wood-fired pizzas are unreal.\nBook ahead, it fills up fast on weekends.",
-    createdAt: "2026-09-08T19:00:00",
-  },
-  {
     id: "i16",
     userId: "alex",
     placeId: "burnt-ends",
@@ -192,11 +153,29 @@ export const interactions: PlaceInteraction[] = [
     createdAt: "2026-09-08T14:00:00",
   },
   {
+    id: "i24r",
+    userId: "sarah",
+    placeId: "ion-orchard",
+    type: "REVIEWED",
+    comment:
+      "Great afternoon wandering the luxury wing — the food hall on B4 is underrated. Picked up gifts and still had time for coffee upstairs.",
+    createdAt: "2026-09-08T14:30:00",
+  },
+  {
     id: "i25",
     userId: "jamie",
     placeId: "ion-orchard",
-    type: "WANT_TO_GO",
+    type: "BEEN",
     createdAt: "2026-09-08T13:00:00",
+  },
+  {
+    id: "i25r",
+    userId: "jamie",
+    placeId: "ion-orchard",
+    type: "REVIEWED",
+    comment:
+      "Metro ride straight in, easy meet-up spot. The atrium light in the late afternoon is perfect for photos before dinner nearby.",
+    createdAt: "2026-09-08T13:20:00",
   },
   {
     id: "i26",
@@ -441,5 +420,58 @@ export const interactions: PlaceInteraction[] = [
     placeId: "lau-pa-sat",
     type: "BEEN",
     createdAt: "2026-09-05T18:00:00",
+  },
+  /* Activity after demo "last visit" — powers map freshness on return entry */
+  {
+    id: "i60",
+    userId: "sarah",
+    placeId: "burnt-ends",
+    type: "BEEN",
+    comment:
+      "Been here twice now and it keeps getting better. We sat in the back corner booth — quiet enough to catch up, but still buzzing with that Friday energy.\n\nStarted with the burrata and honestly could’ve stopped there. Wood-fired margherita had that perfect char, and the natural wine list has enough interesting picks without feeling pretentious.\n\nAlready told three friends to book ahead — weekends fill up fast.",
+    createdAt: "2026-09-09T10:18:00",
+  },
+  {
+    id: "i62",
+    userId: "alex",
+    placeId: "latteria-mozzarella",
+    type: "REVIEWED",
+    comment: "That burrata is still the move.",
+    createdAt: "2026-09-09T10:06:00",
+  },
+  {
+    id: "i62a",
+    userId: "alex",
+    placeId: "latteria-mozzarella",
+    type: "BEEN",
+    createdAt: "2026-09-09T10:25:00",
+  },
+  {
+    id: "i63",
+    userId: "sarah",
+    placeId: "burnt-ends",
+    type: "WANT_TO_GO",
+    createdAt: "2026-09-09T10:22:00",
+  },
+  {
+    id: "i64",
+    userId: "tom",
+    placeId: "burnt-ends",
+    type: "BEEN",
+    createdAt: "2026-09-09T10:08:00",
+  },
+  {
+    id: "i66",
+    userId: "alex",
+    placeId: "ps-cafe",
+    type: "BEEN",
+    createdAt: "2026-09-09T10:04:00",
+  },
+  {
+    id: "i67",
+    userId: "sarah",
+    placeId: "dempsey-hill",
+    type: "WANT_TO_GO",
+    createdAt: "2026-09-09T10:02:00",
   },
 ];

@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
-import { SocialPlace, User } from "@/lib/types";
+import { PlaceInteraction, SocialPlace, User } from "@/lib/types";
 import {
   PLACE_PANEL_EXPANDED_HEIGHT_FRACTION,
   PLACE_PANEL_REST_HEIGHT_FRACTION,
@@ -9,7 +9,8 @@ import {
 import { usePanelExpandDrag } from "@/lib/usePanelExpandDrag";
 import {
   formatRelativeTime,
-  getPlaceBeenFriend,
+  getPlaceBeenFriends,
+  getPlaceExperienceForMarkerThought,
   getPlaceExperiences,
   getPlaceHours,
   getPlaceSavedFriends,
@@ -22,6 +23,8 @@ import { currentUser } from "@/data/users";
 
 interface PlacePanelProps {
   place: SocialPlace;
+  /** Friend interaction shown on the map marker / activity row that opened this panel. */
+  markerThought?: PlaceInteraction | null;
   onClose: () => void;
   exiting?: boolean;
   onExited?: () => void;
@@ -89,6 +92,7 @@ function SocialPill({
           users={stackedUsers}
           max={3}
           size={22}
+          cutoutColor="var(--surface-muted)"
           animateLeading={animateLeadingAvatar}
           onLeadingAnimationEnd={onLeadingAvatarAnimationEnd}
         />
@@ -116,7 +120,14 @@ function SocialPill({
 
 export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
   function PlacePanel(
-    { place, onClose, exiting = false, onExited, onExpandedChange },
+    {
+      place,
+      markerThought = null,
+      onClose,
+      exiting = false,
+      onExited,
+      onExpandedChange,
+    },
     ref,
   ) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -125,14 +136,33 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
   const [justSaved, setJustSaved] = useState(false);
   const hours = getPlaceHours(place.id);
   const metaTail = ` · ${hours} · ${place.category}`;
-  const savedCount = place.friendWantToGoCount + (saved ? 1 : 0);
-  const savedFriends = getPlaceSavedFriends(place.id);
+  const allSavedFriends = getPlaceSavedFriends(place.id);
+  const savedFriends = markerThought
+    ? allSavedFriends.filter((user) => user.id === markerThought.userId)
+    : allSavedFriends;
+  const savedCount = markerThought
+    ? savedFriends.length + (saved ? 1 : 0)
+    : place.friendWantToGoCount + (saved ? 1 : 0);
   const savedAvatarUsers = saved
     ? [currentUser, ...savedFriends]
     : savedFriends;
-  const beenCount = place.friendBeenCount;
-  const beenFriend = getPlaceBeenFriend(place.id);
-  const experiences = getPlaceExperiences(place.id);
+
+  const featuredExperience = markerThought
+    ? getPlaceExperienceForMarkerThought(markerThought)
+    : null;
+  const experiences = featuredExperience
+    ? [featuredExperience]
+    : markerThought
+      ? getPlaceExperiences(place.id).filter(
+          (experience) => experience.user.id === markerThought.userId,
+        )
+      : getPlaceExperiences(place.id);
+
+  const allBeenFriends = getPlaceBeenFriends(place.id);
+  const beenFriends = markerThought
+    ? allBeenFriends.filter((user) => user.id === markerThought.userId)
+    : allBeenFriends;
+  const beenCount = beenFriends.length;
 
   const handleToggleSave = useCallback(() => {
     setSaved((prev) => {
@@ -227,7 +257,8 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
             <SocialPill
               count={beenCount}
               label="been"
-              avatarUser={beenFriend}
+              avatarUser={beenCount === 1 ? beenFriends[0] : undefined}
+              avatarUsers={beenCount > 1 ? beenFriends : undefined}
               plainText
             />
           ) : null}

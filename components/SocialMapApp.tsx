@@ -2,9 +2,16 @@
 
 import { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { ActivityItem, SheetSnap, SheetTab, SocialPlace } from "@/lib/types";
+import {
+  ActivityItem,
+  PlaceInteraction,
+  SheetSnap,
+  SheetTab,
+  SocialPlace,
+} from "@/lib/types";
 import {
   getActivityFeed,
+  getDefaultMapActivityFeed,
   getMapPlaces,
   getRanking,
   getSocialPlaces,
@@ -57,34 +64,44 @@ function IconBackChevron() {
 export function SocialMapApp() {
   const socialPlaces = useMemo(() => getSocialPlaces(), []);
   const mapPlaces = useMemo(() => getMapPlaces(), []);
-  const activities = useMemo(() => getActivityFeed(), []);
   const ranking = useMemo(() => getRanking(), []);
 
   const [selectedPlace, setSelectedPlace] = useState<SocialPlace | null>(null);
+  const [panelMarkerThought, setPanelMarkerThought] =
+    useState<PlaceInteraction | null>(null);
   const [placePanelOpen, setPlacePanelOpen] = useState(false);
   const [placePanelExpanded, setPlacePanelExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<SheetTab>("activities");
   const [sheetSnap, setSheetSnap] = useState<SheetSnap>("collapsed");
   const [restSheetSnap, setRestSheetSnap] = useState<SheetSnap>("collapsed");
+  const activities = useMemo(
+    () => (selectedPlace ? getActivityFeed() : getDefaultMapActivityFeed()),
+    [selectedPlace],
+  );
 
   const handleSnapChange = useCallback((snap: SheetSnap) => {
     if (snap !== "expanded") setRestSheetSnap(snap);
     setSheetSnap(snap);
   }, []);
 
-  const handleSelectPlace = useCallback((place: SocialPlace) => {
-    setSelectedPlace(place);
-    setPlacePanelOpen(true);
-    setPlacePanelExpanded(false);
-    setSheetSnap("collapsed");
-    setRestSheetSnap("collapsed");
-  }, []);
+  const handleSelectPlace = useCallback(
+    (place: SocialPlace, markerThought?: PlaceInteraction) => {
+      setSelectedPlace(place);
+      setPanelMarkerThought(markerThought ?? null);
+      setPlacePanelOpen(true);
+      setPlacePanelExpanded(false);
+      setSheetSnap("collapsed");
+      setRestSheetSnap("collapsed");
+    },
+    [],
+  );
 
   const handleSelectActivity = useCallback(
     (item: ActivityItem) => {
       const place = socialPlaces.find((p) => p.id === item.place.id);
       if (place) {
         setSelectedPlace(place);
+        setPanelMarkerThought(item.interaction);
         setPlacePanelOpen(true);
         setPlacePanelExpanded(false);
         setSheetSnap("collapsed");
@@ -103,6 +120,7 @@ export function SocialMapApp() {
 
   const handlePlaceExited = useCallback(() => {
     setSelectedPlace(null);
+    setPanelMarkerThought(null);
     setPlacePanelExpanded(false);
   }, []);
 
@@ -167,8 +185,9 @@ export function SocialMapApp() {
             </div>
           </div>
           <PlacePanel
-            key={selectedPlace.id}
+            key={`${selectedPlace.id}-${panelMarkerThought?.id ?? "all"}`}
             place={selectedPlace}
+            markerThought={panelMarkerThought}
             exiting={!placePanelOpen}
             onClose={handleClosePlace}
             onExited={handlePlaceExited}

@@ -168,12 +168,14 @@ body {
   font-weight: 400;
 }
 .tux-small-1-semi {
+  font-family: var(--tux-font);
   font-size: 11px;
   line-height: 14px;
   letter-spacing: 0;
   font-weight: 600;
 }
 .tux-small-1 {
+  font-family: var(--tux-font);
   font-size: 11px;
   line-height: 14px;
   letter-spacing: 0;
@@ -706,7 +708,13 @@ body {
   transition-timing-function: var(--ease-in);
 }
 
-.sheet-stage:not(.sheet-stage--expanded) [data-sheet-scroll] {
+.sheet-stage:not(.sheet-stage--expanded) [data-sheet-scroll]:not([data-activity-feed]) {
+  overflow-y: hidden;
+}
+
+/* Activity feed: allow scatter rows to bleed into horizontal padding */
+.sheet-stage:not(.sheet-stage--expanded) .activity-feed-scroll {
+  overflow-x: visible;
   overflow-y: hidden;
 }
 

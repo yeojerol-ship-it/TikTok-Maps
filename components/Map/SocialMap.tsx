@@ -14,29 +14,33 @@ import MapGL, { Marker, MapRef } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { DEFAULT_MAP_PLACE_ID } from "@/data/featuredPlaces";
 import { placeMap } from "@/data/places";
-import { SocialPlace } from "@/lib/types";
+import { PlaceInteraction, SocialPlace } from "@/lib/types";
+import { getPlaceMarkerBubble } from "@/lib/selectors";
 import {
-  enable3dBuildings,
-  MAP_CAMERA,
+  animate3dBuildings,
+  MAP_CAMERA_2D,
+  MAP_CAMERA_3D,
   MAP_STYLE_URL,
   SELECTED_POI_CAMERA,
+  setup2dMap,
 } from "@/lib/mapStyle";
 import {
   getMapCenterOffsetForBottomPanel,
-  POI_PANEL_HEIGHT_FRACTION,
+  PLACE_PANEL_REST_HEIGHT_FRACTION,
 } from "@/lib/poiPanelLayout";
 import {
   COMPACT_MARKER_LAYOUT_BOX,
   DETAILED_MARKER_LAYOUT_BOX,
   resolveMarkerOffsets,
+  SELECTED_MARKER_FLY_OFFSET_Y,
 } from "@/lib/markerLayout";
 import { USER_LOCATION } from "@/data/userLocation";
 import { MapNavBar } from "./MapNavBar";
 import { SocialMarker } from "./SocialMarker";
 import { UserLocationMarker } from "./UserLocationMarker";
 
-const FOCUS_ZOOM = MAP_CAMERA.zoom;
-const SELECTED_ZOOM = MAP_CAMERA.selectedZoom;
+const FOCUS_ZOOM = MAP_CAMERA_2D.zoom;
+const SELECTED_ZOOM = MAP_CAMERA_3D.selectedZoom;
 /** Matches BottomSheet collapsed snap height fraction. */
 const COLLAPSED_SHEET_FRACTION = 0.32;
 
@@ -47,7 +51,10 @@ export interface SocialMapHandle {
 interface SocialMapProps {
   places: SocialPlace[];
   selectedPlaceId: string | null;
-  onSelectPlace: (place: SocialPlace) => void;
+  onSelectPlace: (
+    place: SocialPlace,
+    markerThought?: PlaceInteraction,
+  ) => void;
   onBack?: () => void;
   /** Offset map centering for the collapsed bottom sheet. */
   reserveBottomSheet?: boolean;
@@ -55,7 +62,13 @@ interface SocialMapProps {
 
 export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
   function SocialMap(
-    { places, selectedPlaceId, onSelectPlace, onBack, reserveBottomSheet = true },
+    {
+      places,
+      selectedPlaceId,
+      onSelectPlace,
+      onBack,
+      reserveBottomSheet = true,
+    },
     ref,
   ) {
   const mapRef = useRef<MapRef>(null);
@@ -69,7 +82,7 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
   const [markerOffsets, setMarkerOffsets] = useState<
     Map<string, { x: number; y: number }>
   >(() => new Map());
-  const [mapZoom, setMapZoom] = useState(FOCUS_ZOOM);
+  const [mapZoom, setMapZoom] = useState<number>(FOCUS_ZOOM);
   const showDetailedMarkers = mapZoom >= FOCUS_ZOOM;
 
   const focusPlace = useMemo(
@@ -82,22 +95,33 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
       latitude: focusPlace.latitude,
       longitude: focusPlace.longitude,
       zoom: FOCUS_ZOOM,
-      bearing: MAP_CAMERA.bearing,
-      pitch: MAP_CAMERA.pitch,
+      bearing: MAP_CAMERA_2D.bearing,
+      pitch: MAP_CAMERA_2D.pitch,
     }),
     [focusPlace],
   );
 
-  const getMapVerticalOffsetY = useCallback(() => {
+  const mapPitch = selectedPlaceId ? MAP_CAMERA_3D.pitch : MAP_CAMERA_2D.pitch;
+  const mapBearing = selectedPlaceId
+    ? MAP_CAMERA_3D.bearing
+    : MAP_CAMERA_2D.bearing;
+
+  const getMapFlyOffset = useCallback((): [number, number] => {
     const containerHeight = containerRef.current?.clientHeight ?? 844;
     const panelFraction = selectedPlaceId
-      ? POI_PANEL_HEIGHT_FRACTION
+      ? PLACE_PANEL_REST_HEIGHT_FRACTION
       : reserveBottomSheet
         ? COLLAPSED_SHEET_FRACTION
         : 0;
 
-    if (panelFraction === 0) return 0;
-    return getMapCenterOffsetForBottomPanel(containerHeight, panelFraction);
+    const panelOffsetY =
+      panelFraction === 0
+        ? 0
+        : getMapCenterOffsetForBottomPanel(containerHeight, panelFraction);
+
+    const markerOffsetY = selectedPlaceId ? SELECTED_MARKER_FLY_OFFSET_Y : 0;
+
+    return [0, panelOffsetY + markerOffsetY];
   }, [reserveBottomSheet, selectedPlaceId]);
 
   const prefersReducedMotion = useCallback(() => {
@@ -109,19 +133,19 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
     (
       place: { longitude: number; latitude: number },
       duration = 0,
-      zoom = FOCUS_ZOOM,
+      zoom: number = FOCUS_ZOOM,
     ) => {
       mapRef.current?.flyTo({
         center: [place.longitude, place.latitude],
         zoom,
-        bearing: MAP_CAMERA.bearing,
-        pitch: MAP_CAMERA.pitch,
-        offset: [0, getMapVerticalOffsetY()],
+        bearing: mapBearing,
+        pitch: mapPitch,
+        offset: getMapFlyOffset(),
         duration: prefersReducedMotion() ? 0 : duration,
         essential: true,
       });
     },
-    [getMapVerticalOffsetY, prefersReducedMotion],
+    [getMapFlyOffset, mapBearing, mapPitch, prefersReducedMotion],
   );
 
   const centerOnFocus = useCallback(() => {
@@ -158,13 +182,14 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
 
   useEffect(() => {
     if (!selectedPlaceId) return;
+    if (prefersReducedMotion()) return;
 
     const place = places.find((p) => p.id === selectedPlaceId);
     if (!place) return;
 
     let active = true;
     let lastTime = performance.now();
-    let bearing: number = MAP_CAMERA.bearing;
+    let bearing: number = MAP_CAMERA_3D.bearing;
 
     const stopRotation = () => {
       active = false;
@@ -191,8 +216,8 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
         center: [place.longitude, place.latitude],
         zoom: SELECTED_ZOOM,
         bearing,
-        pitch: MAP_CAMERA.pitch,
-        offset: [0, getMapVerticalOffsetY()],
+        pitch: MAP_CAMERA_3D.pitch,
+        offset: getMapFlyOffset(),
         duration: 0,
         essential: true,
       });
@@ -219,7 +244,7 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
       stopRotation();
       map?.off("moveend", startRotation);
     };
-  }, [getMapVerticalOffsetY, places, selectedPlaceId]);
+  }, [getMapFlyOffset, places, prefersReducedMotion, selectedPlaceId]);
 
   const displayedPlaces = useMemo(() => {
     if (selectedPlaceId) {
@@ -294,8 +319,8 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
   const handleMapLoad = useCallback(
     (event: { target: MapboxMap }) => {
       const map = event.target;
-      enable3dBuildings(map);
-      map.on("styledata", () => enable3dBuildings(map));
+      setup2dMap(map);
+      map.on("styledata", () => setup2dMap(map));
       centerOnFocus();
       updateVisiblePlaces();
       map.on("move", scheduleVisiblePlacesUpdate);
@@ -304,6 +329,19 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
     },
     [centerOnFocus, scheduleVisiblePlacesUpdate, updateVisiblePlaces],
   );
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+
+    const duration = prefersReducedMotion()
+      ? 0
+      : selectedPlaceId
+        ? SELECTED_POI_CAMERA.buildingsDurationMs
+        : SELECTED_POI_CAMERA.returnDurationMs;
+
+    animate3dBuildings(map, Boolean(selectedPlaceId), duration);
+  }, [prefersReducedMotion, selectedPlaceId]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -322,7 +360,10 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
 
   const handleSelect = useCallback(
     (place: SocialPlace) => {
-      onSelectPlace(place);
+      const bubble = getPlaceMarkerBubble(place.id);
+      const markerThought =
+        bubble?.mode === "single" ? bubble.thought : undefined;
+      onSelectPlace(place, markerThought);
     },
     [onSelectPlace],
   );
@@ -354,6 +395,8 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
         {displayedPlaces.map((place) => {
           const offset = markerOffsets.get(place.id);
           const isSelected = selectedPlaceId === place.id;
+          const inView = isSelected || visiblePlaceIds.has(place.id);
+          const compact = !showDetailedMarkers || isSelected;
           return (
           <Marker
             key={place.id}
@@ -372,8 +415,8 @@ export const SocialMap = forwardRef<SocialMapHandle, SocialMapProps>(
             <SocialMarker
               place={place}
               selected={isSelected}
-              inView={isSelected || visiblePlaceIds.has(place.id)}
-              compact={!showDetailedMarkers || isSelected}
+              inView={inView}
+              compact={compact}
               onClick={() => handleSelect(place)}
             />
           </Marker>

@@ -1,4 +1,8 @@
-import { FEATURED_MAP_PLACE_IDS } from "@/data/featuredPlaces";
+import { DEMO_NOW } from "@/lib/demoTime";
+import {
+  DEFAULT_MAP_PLACE_ID,
+  FEATURED_MAP_PLACE_IDS,
+} from "@/data/featuredPlaces";
 import { interactions } from "@/data/interactions";
 import { placeMap, places } from "@/data/places";
 import { rankingPlacesVisited } from "@/data/ranking";
@@ -11,6 +15,7 @@ import {
   ActivityItem,
   PlaceExperience,
   PlaceInteraction,
+  PlaceMarkerBubble,
   RankingEntry,
   SocialPlace,
   User,
@@ -65,7 +70,12 @@ export function getSocialPlaces(): SocialPlace[] {
         .filter(Boolean) as User[];
 
       const recentThoughts = friendInteractions
-        .filter((i) => i.type === "REVIEWED" || i.type === "WANT_TO_GO")
+        .filter(
+          (i) =>
+            i.type === "REVIEWED" ||
+            i.type === "WANT_TO_GO" ||
+            i.type === "BEEN",
+        )
         .sort(
           (a, b) =>
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -106,6 +116,34 @@ export function getActivityFeed(): ActivityItem[] {
     .filter((item) => item.user && item.place);
 }
 
+/** Pin the centred default POI marker’s activity to the top of the feed. */
+export function getDefaultMapActivityFeed(): ActivityItem[] {
+  return orderActivityFeedForFocusPlace(
+    getActivityFeed(),
+    DEFAULT_MAP_PLACE_ID,
+  );
+}
+
+export function orderActivityFeedForFocusPlace(
+  items: ActivityItem[],
+  focusPlaceId: string,
+): ActivityItem[] {
+  const markerThought = getPlaceMarkerThought(focusPlaceId);
+  if (!markerThought) return items;
+
+  const focusIndex = items.findIndex(
+    (item) => item.interaction.id === markerThought.id,
+  );
+  if (focusIndex <= 0) return items;
+
+  const focusItem = items[focusIndex];
+  return [
+    focusItem,
+    ...items.slice(0, focusIndex),
+    ...items.slice(focusIndex + 1),
+  ];
+}
+
 export function getRanking(): RankingEntry[] {
   const sorted = users
     .map((user) => ({
@@ -143,7 +181,7 @@ export function getPlaceFriendComments(placeId: string) {
 
 export function formatRelativeTime(dateStr: string): string {
   const date = new Date(dateStr);
-  const now = new Date("2026-09-09T10:00:00");
+  const now = new Date(DEMO_NOW);
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
@@ -158,6 +196,9 @@ export function formatRelativeTime(dateStr: string): string {
 
 export function getActivityText(interaction: PlaceInteraction): string {
   if (interaction.type === "REVIEWED" && interaction.comment) {
+    return interaction.comment;
+  }
+  if (interaction.type === "BEEN" && interaction.comment) {
     return interaction.comment;
   }
   if (interaction.type === "WANT_TO_GO") return "Want to go";
@@ -223,22 +264,109 @@ export function getPlaceDistanceLabel(distance: string): string {
 }
 
 export function getPlaceBeenFriend(placeId: string): User | null {
-  const interaction = interactions.find(
-    (i) =>
-      i.placeId === placeId && i.type === "BEEN" && isFriend(i.userId),
-  );
+  const interaction = interactions
+    .filter(
+      (i) =>
+        i.placeId === placeId && i.type === "BEEN" && isFriend(i.userId),
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )[0];
   if (!interaction) return null;
   return userMap[interaction.userId] ?? null;
 }
 
+export function getPlaceBeenFriendForUser(
+  placeId: string,
+  userId: string,
+): User | null {
+  const hasBeen = interactions.some(
+    (i) =>
+      i.placeId === placeId &&
+      i.userId === userId &&
+      i.type === "BEEN" &&
+      isFriend(i.userId),
+  );
+  if (!hasBeen) return null;
+  return userMap[userId] ?? null;
+}
+
+/** Single panel experience aligned with the map marker speech bubble. */
+export function getPlaceExperienceForMarkerThought(
+  thought: PlaceInteraction,
+): PlaceExperience | null {
+  const user = userMap[thought.userId];
+  if (!user || !isFriend(thought.userId)) return null;
+
+  if (thought.type === "REVIEWED" && thought.comment) {
+    return {
+      user,
+      text: thought.comment,
+      images: getInteractionActivityImages(thought.id, thought.placeId),
+      createdAt: thought.createdAt,
+    };
+  }
+
+  if (thought.type === "BEEN") {
+    return {
+      user,
+      text:
+        thought.comment ??
+        "Been here. Stopped by after work and ended up staying longer than planned — cozy vibe, easy to bring friends next time.",
+      images: thought.comment
+        ? getInteractionActivityImages(thought.id, thought.placeId)
+        : getPlaceActivityImages(thought.placeId),
+      createdAt: thought.createdAt,
+    };
+  }
+
+  if (thought.type === "WANT_TO_GO") {
+    return {
+      user,
+      text: "Want to go",
+      images: [],
+      createdAt: thought.createdAt,
+    };
+  }
+
+  return null;
+}
+
+export function getPlaceBeenFriends(placeId: string): User[] {
+  const latestByUser = new Map<string, number>();
+
+  for (const interaction of interactions) {
+    if (
+      interaction.placeId !== placeId ||
+      interaction.type !== "BEEN" ||
+      !isFriend(interaction.userId)
+    ) {
+      continue;
+    }
+    const at = Date.parse(interaction.createdAt);
+    const prev = latestByUser.get(interaction.userId) ?? 0;
+    if (at >= prev) latestByUser.set(interaction.userId, at);
+  }
+
+  return Array.from(latestByUser.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([id]) => userMap[id])
+    .filter(Boolean) as User[];
+}
+
 export function getPlaceSavedFriends(placeId: string): User[] {
+  const beenUserIds = new Set(
+    getPlaceBeenFriends(placeId).map((user) => user.id),
+  );
   const userIds = new Set<string>();
 
   for (const interaction of interactions) {
     if (
       interaction.placeId !== placeId ||
       interaction.type !== "WANT_TO_GO" ||
-      !isFriend(interaction.userId)
+      !isFriend(interaction.userId) ||
+      beenUserIds.has(interaction.userId)
     ) {
       continue;
     }
@@ -247,6 +375,114 @@ export function getPlaceSavedFriends(placeId: string): User[] {
 
   return Array.from(userIds)
     .map((id) => userMap[id])
+    .filter(Boolean) as User[];
+}
+
+/** Unique friends who saved or have been at a place. */
+export function getPlaceMarkedUserIds(placeId: string): string[] {
+  const latestByUser = new Map<string, number>();
+
+  for (const interaction of interactions) {
+    if (
+      interaction.placeId !== placeId ||
+      (interaction.type !== "WANT_TO_GO" && interaction.type !== "BEEN") ||
+      !isFriend(interaction.userId)
+    ) {
+      continue;
+    }
+    const at = Date.parse(interaction.createdAt);
+    const prev = latestByUser.get(interaction.userId) ?? 0;
+    if (at >= prev) latestByUser.set(interaction.userId, at);
+  }
+
+  return Array.from(latestByUser.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([id]) => id);
+}
+
+function getBestBubbleThoughtForUser(
+  placeId: string,
+  userId: string,
+): PlaceInteraction | undefined {
+  const userInteractions = interactions
+    .filter(
+      (interaction) =>
+        interaction.placeId === placeId &&
+        interaction.userId === userId &&
+        isFriend(interaction.userId),
+    )
+    .sort(
+      (a, b) =>
+        Date.parse(b.createdAt) - Date.parse(a.createdAt),
+    );
+
+  return (
+    userInteractions.find(
+      (interaction) => interaction.type === "REVIEWED" && interaction.comment,
+    ) ??
+    userInteractions.find(
+      (interaction) => interaction.type === "BEEN" && interaction.comment,
+    ) ??
+    userInteractions.find((interaction) => interaction.type === "REVIEWED") ??
+    userInteractions.find((interaction) => interaction.type === "BEEN") ??
+    userInteractions.find((interaction) => interaction.type === "WANT_TO_GO")
+  );
+}
+
+/** Map marker bubble: one friend’s story, or “N marked” when several saved/been. */
+export function getPlaceMarkerBubble(
+  placeId: string,
+): PlaceMarkerBubble | null {
+  const markedIds = getPlaceMarkedUserIds(placeId);
+  const users = markedIds
+    .map((id) => userMap[id])
+    .filter(Boolean) as User[];
+
+  if (markedIds.length > 1) {
+    return { mode: "marked", users, count: markedIds.length };
+  }
+
+  if (markedIds.length === 1) {
+    const thought = getBestBubbleThoughtForUser(placeId, markedIds[0]);
+    if (thought) return { mode: "single", thought };
+  }
+
+  return null;
+}
+
+/** Primary interaction for panel / activity sync with the map bubble. */
+export function getPlaceMarkerThought(
+  placeId: string,
+): PlaceInteraction | undefined {
+  const bubble = getPlaceMarkerBubble(placeId);
+  if (!bubble) return undefined;
+  if (bubble.mode === "single") return bubble.thought;
+
+  const [primaryUserId] = getPlaceMarkedUserIds(placeId);
+  if (!primaryUserId) return undefined;
+  return getBestBubbleThoughtForUser(placeId, primaryUserId);
+}
+
+/** Friends who saved (WANT_TO_GO) or have been — for place panel aggregates. */
+export function getPlaceMarkedFriends(placeId: string): User[] {
+  const latestByUser = new Map<string, number>();
+
+  for (const interaction of interactions) {
+    if (
+      interaction.placeId !== placeId ||
+      (interaction.type !== "WANT_TO_GO" && interaction.type !== "BEEN") ||
+      !isFriend(interaction.userId)
+    ) {
+      continue;
+    }
+    const at = new Date(interaction.createdAt).getTime();
+    const prev = latestByUser.get(interaction.userId) ?? 0;
+    if (at >= prev) latestByUser.set(interaction.userId, at);
+  }
+
+  return Array.from(latestByUser.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([id]) => userMap[id])
     .filter(Boolean) as User[];
 }
 
@@ -305,3 +541,12 @@ export function getPlaceExperiences(placeId: string): PlaceExperience[] {
     )
     .slice(0, 5);
 }
+
+export {
+  beginMapFreshnessSession,
+  computeFreshPlaces,
+  getFreshnessForPlace,
+  getPlaceFreshnessBubble,
+  markPlaceFreshnessSeen,
+  pickHotspotPlaceId,
+} from "@/lib/mapFreshness";
