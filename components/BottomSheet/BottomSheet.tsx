@@ -16,8 +16,15 @@ interface BottomSheetProps {
   header?: ReactNode;
   /** Replaces default `bg-bg` on the sheet root when set. */
   surfaceClassName?: string;
+  /**
+   * Drop the sheet's own rounded top so a `header` can paint the top edge
+   * itself (e.g. the notched tab shapes).
+   */
+  flushTop?: boolean;
   /** Slide the sheet off-screen while a place panel is open. */
   recede?: boolean;
+  /** Hide off-screen until the landing → map entry sequence reveals the sheet. */
+  enterHidden?: boolean;
 }
 
 export const SHEET_SNAP_FRACTIONS: Record<SheetSnap, number> = {
@@ -34,7 +41,9 @@ export function BottomSheet({
   grabberOverlay = false,
   header,
   surfaceClassName,
+  flushTop = false,
   recede = false,
+  enterHidden = false,
 }: BottomSheetProps) {
   const [internalSnap, setInternalSnap] = useState<SheetSnap>("collapsed");
   const snap = controlledSnap ?? internalSnap;
@@ -82,14 +91,14 @@ export function BottomSheet({
   return (
     <div
       ref={sheetRef}
-      className={`sheet-stage absolute bottom-0 left-0 right-0 z-30 flex flex-col overflow-hidden ${expanded ? "sheet-stage--expanded" : ""} ${recede ? "sheet-stage--recede pointer-events-none" : "pointer-events-auto"} ${background ? "" : surfaceClassName ?? "bump-panel"}`}
+      className={`sheet-stage absolute bottom-0 left-0 right-0 z-30 flex flex-col ${flushTop ? "overflow-visible" : "overflow-hidden"} ${expanded ? "sheet-stage--expanded" : ""} ${recede ? "sheet-stage--recede pointer-events-none" : enterHidden ? "sheet-stage--enter-hidden pointer-events-none" : "pointer-events-auto"} ${background ? "" : surfaceClassName ?? "bump-panel"}`}
       style={{
         height: `${SHEET_SNAP_FRACTIONS[snap] * 100}%`,
         maxHeight: "95%",
-        borderTopLeftRadius: "var(--radius-surface)",
-        borderTopRightRadius: "var(--radius-surface)",
+        borderTopLeftRadius: flushTop ? 0 : "var(--radius-surface)",
+        borderTopRightRadius: flushTop ? 0 : "var(--radius-surface)",
       }}
-      aria-hidden={recede || undefined}
+      aria-hidden={recede || enterHidden || undefined}
     >
       {background && (
         <div

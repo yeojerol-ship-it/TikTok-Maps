@@ -50,8 +50,8 @@ const returnVisit = computeFreshPlaces(DEMO_NOW);
 assert(returnVisit.length >= 4, "return visit should surface multiple fresh map POIs");
 assert(returnVisit.length >= 4, "return visit should surface multiple fresh map POIs");
 assert(
-  returnVisit.some((place) => place.placeId === "latteria-mozzarella"),
-  "latteria-mozzarella should appear in fresh places",
+  returnVisit.some((place) => place.placeId === "rappu-sushi"),
+  "rappu-sushi should appear in fresh places",
 );
 
 console.log("verify-freshness: all checks passed");

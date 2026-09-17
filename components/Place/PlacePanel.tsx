@@ -10,14 +10,16 @@ import { usePanelExpandDrag } from "@/lib/usePanelExpandDrag";
 import {
   formatRelativeTime,
   getPlaceBeenFriends,
+  getPlaceCategoryLabel,
   getPlaceExperienceForMarkerThought,
   getPlaceExperiences,
-  getPlaceHours,
+  getPlacePriceLevel,
+  getPlaceReviewCountLabel,
   getPlaceSavedFriends,
 } from "@/lib/selectors";
 import { Avatar } from "@/components/Avatar/Avatar";
 import { AvatarStack } from "@/components/Avatar/AvatarStack";
-import { ActivityPlaceImages } from "@/components/Activity/ActivityPlaceImages";
+import { ThreadRow } from "@/components/Activity/ThreadRow";
 import { CornerBookmark } from "@/components/Place/CornerBookmark";
 import { currentUser } from "@/data/users";
 
@@ -134,8 +136,9 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
   const [expanded, setExpanded] = useState(false);
   const [saved, setSaved] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
-  const hours = getPlaceHours(place.id);
-  const metaTail = ` · ${hours} · ${place.category}`;
+  const reviewCount = getPlaceReviewCountLabel(place.id);
+  const priceLevel = getPlacePriceLevel(place.category);
+  const categoryLabel = getPlaceCategoryLabel(place.category);
   const allSavedFriends = getPlaceSavedFriends(place.id);
   const savedFriends = markerThought
     ? allSavedFriends.filter((user) => user.id === markerThought.userId)
@@ -237,12 +240,27 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
           <IconChevronRight />
         </div>
 
-        <p className="mt-1.5 text-[13px] leading-[1.35] text-[var(--tux-text-2)]">
-          <span className="font-semibold text-[var(--bump-green)]">Open</span>
-          <span>{metaTail}</span>
-        </p>
+        <div className="flex items-center gap-0.5 pt-1">
+          <img
+            src="/icons/rating-star.svg"
+            alt=""
+            width={16}
+            height={16}
+            className="size-4 shrink-0"
+            draggable={false}
+          />
+          <span className="text-[13px] font-semibold leading-[1.3] text-foreground">
+            {place.rating.toFixed(1)}
+          </span>
+          <span className="text-[13px] leading-[17.55px] text-[#656970]">
+            {reviewCount}
+          </span>
+          <span className="truncate text-[13px] leading-[17.55px] text-[#656970]">
+            {` · ${priceLevel} · ${categoryLabel}`}
+          </span>
+        </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {savedCount > 0 ? (
             <SocialPill
               count={savedCount}
@@ -264,45 +282,23 @@ export const PlacePanel = forwardRef<HTMLDivElement, PlacePanelProps>(
           ) : null}
         </div>
 
-        <div
-          className={
-            experiences.length > 0 ? "mt-6 space-y-5" : "mt-3"
-          }
-        >
+        <div className={experiences.length > 0 ? "mt-1" : "mt-3"}>
           {experiences.length > 0 ? (
             experiences.map((experience) => (
-              <div key={experience.user.id}>
-                <div className="flex items-start gap-3">
-                  <Avatar
-                    src={experience.user.avatar}
-                    name={experience.user.name}
-                    size={44}
-                    className="shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-baseline gap-1">
-                      <p className="truncate text-[15px] font-semibold text-foreground">
-                        {experience.user.name}
-                      </p>
-                      <span className="shrink-0 text-[13px] text-muted">·</span>
-                      <span className="shrink-0 text-[13px] text-muted">
-                        {formatRelativeTime(experience.createdAt)}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 whitespace-pre-wrap text-[14px] leading-[1.4] text-[var(--tux-text-2)]">
-                      {experience.text}
-                    </p>
-                    {experience.images.length > 0 ? (
-                      <ActivityPlaceImages
-                        images={experience.images}
-                        placeName={place.name}
-                        bleedEnd
-                        variant="scatter"
-                      />
-                    ) : null}
-                  </div>
-                </div>
-              </div>
+              <ThreadRow
+                key={experience.user.id}
+                user={experience.user}
+                time={formatRelativeTime(experience.createdAt)}
+                text={experience.text}
+                placeName={place.name}
+                showPlaceName={false}
+                images={experience.images}
+                avatarSize={40}
+                rating={experience.rating}
+                commentCount={experience.commentCount}
+                likeCount={experience.likeCount}
+                showActions
+              />
             ))
           ) : (
             <p className="pt-3 text-[13px] leading-[1.35] text-muted">

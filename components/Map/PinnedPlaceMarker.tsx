@@ -13,9 +13,9 @@ export function PinnedPlaceMarker({ place }: PinnedPlaceMarkerProps) {
 
   return (
     <div className="flex flex-col items-center">
-      <StickerMarkerIcon src={markerIcon} size={40} />
+      <StickerMarkerIcon src={markerIcon} size={44} />
       <p
-        className="marker-label tux-small-1-semi mt-0.5 max-w-[140px] truncate text-center"
+        className="marker-label tux-small-1-semi mt-[4px] max-w-[140px] truncate text-center"
         style={{
           color: "var(--tux-text-2)",
           WebkitTextStroke: "2px #ffffff",

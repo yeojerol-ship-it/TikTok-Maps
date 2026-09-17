@@ -178,8 +178,10 @@ export const interactions: PlaceInteraction[] = [
     createdAt: "2026-09-08T13:20:00",
   },
   {
+    // Figma 2969:14520 captions the arcade pill "2 friends marked", so the
+    // third friend here belongs to Jayne rather than a separate marker.
     id: "i26",
-    userId: "alex",
+    userId: "jamie",
     placeId: "ion-orchard",
     type: "WANT_TO_GO",
     createdAt: "2026-09-08T12:00:00",
@@ -379,13 +381,6 @@ export const interactions: PlaceInteraction[] = [
     createdAt: "2026-09-06T16:00:00",
   },
   {
-    id: "i54",
-    userId: "sarah",
-    placeId: "ps-cafe",
-    type: "WANT_TO_GO",
-    createdAt: "2026-09-06T11:00:00",
-  },
-  {
     id: "i55",
     userId: "alex",
     placeId: "swee-choon",
@@ -434,15 +429,16 @@ export const interactions: PlaceInteraction[] = [
   {
     id: "i62",
     userId: "alex",
-    placeId: "latteria-mozzarella",
+    placeId: "rappu-sushi",
     type: "REVIEWED",
-    comment: "That burrata is still the move.",
+    comment:
+      "Great chill spot for anyone looking for a place to wine and dine over the weekends.",
     createdAt: "2026-09-09T10:06:00",
   },
   {
     id: "i62a",
     userId: "alex",
-    placeId: "latteria-mozzarella",
+    placeId: "rappu-sushi",
     type: "BEEN",
     createdAt: "2026-09-09T10:25:00",
   },
@@ -461,17 +457,61 @@ export const interactions: PlaceInteraction[] = [
     createdAt: "2026-09-09T10:08:00",
   },
   {
-    id: "i66",
-    userId: "alex",
-    placeId: "ps-cafe",
-    type: "BEEN",
-    createdAt: "2026-09-09T10:04:00",
-  },
-  {
     id: "i67",
     userId: "sarah",
     placeId: "dempsey-hill",
     type: "WANT_TO_GO",
     createdAt: "2026-09-09T10:02:00",
+  },
+  {
+    id: "i68",
+    userId: "daniel",
+    placeId: "tangs",
+    type: "BEEN",
+    createdAt: "2026-09-08T11:00:00",
+  },
+  {
+    id: "i69",
+    userId: "maya",
+    placeId: "tangs",
+    type: "WANT_TO_GO",
+    createdAt: "2026-09-08T10:30:00",
+  },
+  {
+    id: "i70",
+    userId: "chris",
+    placeId: "wheelock-place",
+    type: "BEEN",
+    createdAt: "2026-09-08T09:20:00",
+  },
+  {
+    id: "i71",
+    userId: "lily",
+    placeId: "wheelock-place",
+    type: "WANT_TO_GO",
+    createdAt: "2026-09-08T08:40:00",
+  },
+  {
+    id: "i72",
+    userId: "rachel",
+    placeId: "shaw-centre",
+    type: "BEEN",
+    createdAt: "2026-09-08T07:15:00",
+  },
+  {
+    id: "i73",
+    userId: "tom",
+    placeId: "shaw-centre",
+    type: "WANT_TO_GO",
+    createdAt: "2026-09-08T06:45:00",
+  },
+  {
+    // Figma 2969:14504 — a lone "Cody saved" pill, so Cody is the only friend
+    // on this POI and the caption stays singular.
+    id: "i74",
+    userId: "sarah",
+    placeId: "namnam-noodle-bar",
+    type: "WANT_TO_GO",
+    createdAt: "2026-09-08T12:40:00",
   },
 ];

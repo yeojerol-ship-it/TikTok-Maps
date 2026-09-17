@@ -2,7 +2,7 @@ import { placeMap } from "./places";
 
 const EARTH_RADIUS_M = 6_371_000;
 
-/** Walking offset from Rappu (latteria-mozzarella) — mock “you are here”. */
+/** Walking offset from Rappu sushi — mock “you are here”. */
 export const USER_TO_LATTERIA_METERS = 63;
 /** SSE of the POI so the puck sits in the pitched-camera foreground. */
 export const USER_FROM_LATTERIA_BEARING_DEG = 160;
@@ -34,10 +34,10 @@ function destinationPoint(
   };
 }
 
-const latteria = placeMap["latteria-mozzarella"];
+const rappu = placeMap["rappu-sushi"];
 
 export const USER_LOCATION = destinationPoint(
-  latteria,
+  rappu,
   USER_TO_LATTERIA_METERS,
   USER_FROM_LATTERIA_BEARING_DEG,
 );

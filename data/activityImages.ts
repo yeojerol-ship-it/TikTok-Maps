@@ -5,7 +5,7 @@ export const PLACE_ACTIVITY_IMAGES: Record<string, string[]> = {
     "/reviews/handroll-chili.jpg",
   ],
   "gardens-by-the-bay": ["/activity/places/place-3.png"],
-  "latteria-mozzarella": [
+  "rappu-sushi": [
     "/reviews/beef-tartare.jpg",
     "/reviews/appetizers-platter.jpg",
     "/reviews/sea-grapes-bowl.jpg",

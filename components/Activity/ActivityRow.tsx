@@ -22,6 +22,10 @@ export function ActivityRow({ item, onClick }: ActivityRowProps) {
     (item.interaction.type === "REVIEWED" ||
       (item.interaction.type === "BEEN" && Boolean(item.interaction.comment)));
 
+  const isReviewThread =
+    item.interaction.type === "REVIEWED" ||
+    (item.interaction.type === "BEEN" && Boolean(item.interaction.comment));
+
   return (
     <ThreadRow
       user={item.user}
@@ -29,6 +33,10 @@ export function ActivityRow({ item, onClick }: ActivityRowProps) {
       text={text || undefined}
       placeName={item.place.name}
       images={showImages ? images : []}
+      rating={isReviewThread ? 4 : undefined}
+      commentCount={isReviewThread ? 12 : undefined}
+      likeCount={isReviewThread ? 6 : undefined}
+      showActions={isReviewThread}
       onClick={onClick}
     />
   );

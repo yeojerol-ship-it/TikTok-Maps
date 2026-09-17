@@ -50,6 +50,20 @@ export interface RankingEntry {
   isCurrentUser?: boolean;
 }
 
+/** Friend avatar pinned on the map while the Ranking tab is active. */
+export interface RankingMapAvatar {
+  id: string;
+  user: User;
+  rank: number;
+  latitude: number;
+  longitude: number;
+  /** BEEN check-ins in this user's region cluster. */
+  checkInCount: number;
+  isCurrentUser?: boolean;
+  /** Set when a top-3 user has multiple regional markers. */
+  placeId?: string;
+}
+
 export type SheetTab = "activities" | "ranking";
 export type SheetSnap = "collapsed" | "medium" | "expanded";
 
@@ -58,6 +72,10 @@ export interface PlaceExperience {
   text: string;
   images: string[];
   createdAt: string;
+  /** Whole-star rating shown on the thread (1–5). */
+  rating?: number;
+  commentCount?: number;
+  likeCount?: number;
 }
 
 export type PlaceMarkerBubble =

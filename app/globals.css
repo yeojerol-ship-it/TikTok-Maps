@@ -39,6 +39,17 @@
     format("woff2");
 }
 
+/* Variable cut — needed wherever the Figma spec sets a `wdth` axis value. */
+@font-face {
+  font-family: "TikTok Sans Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 300 900;
+  font-stretch: 75% 150%;
+  src: url(https://fonts.gstatic.com/s/tiktoksans/v8/70lAu7g-Lm8OXGnh_Ow1sUfFMmdd9dRE425wpTDUXE9fgQZbsg.woff2)
+    format("woff2");
+}
+
 /* Figma map nav title — ExtraBold at wdth 92 (condensed) */
 @font-face {
   font-family: "TikTok Sans Condensed";
@@ -55,6 +66,8 @@
   --bg: #ffffff;
   --text: oklch(0.22 0.015 260);
   --tux-text-2: oklch(0.52 0.012 260);
+  /* Figma UI/text/3 */
+  --tux-text-3: rgba(0, 0, 0, 0.48);
   --muted: oklch(0.58 0.012 260);
   --border: oklch(0.905 0.008 260);
   --border-subtle: oklch(0.928 0.006 260);
@@ -78,6 +91,11 @@
   --sheet-medium: 52%;
   --sheet-expanded: 95%;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-marker-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --marker-enter-duration: 0.46s;
+  --subtitle-char-duration: 0.38s;
+  --subtitle-char-stagger: 26ms;
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
   --sheet-tab-h: 72px;
   --sheet-tab-active-w: 58%;
@@ -197,6 +215,114 @@ body {
   letter-spacing: 0;
 }
 
+.marker-pill {
+  overflow: hidden;
+}
+
+/* Blue wash over the basemap. Attached to the canvas container so it paints
+   above the WebGL canvas but below every .mapboxgl-marker — those carry an
+   inline z-index >= 1, so avatars and labels stay untinted. */
+.mapboxgl-canvas-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(207, 231, 255, 0.2);
+}
+
+/* Map top scrim (Figma node 2552:224962) — fades the basemap out behind the
+   district header. The mask fades the blur out with the gradient. */
+.map-top-fade {
+  height: 145px;
+  background: linear-gradient(
+    180deg,
+    rgba(207, 231, 255, 0.2) 0%,
+    rgba(207, 231, 255, 0) 100%
+  );
+  backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.55) 60%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    rgba(0, 0, 0, 0.55) 60%,
+    transparent 100%
+  );
+}
+
+/* Map header (Figma nodes 2969:18752 / 2969:18753) — white stroke keeps the
+   text legible over the basemap. */
+.map-district-title {
+  font-family: "TikTok Sans Variable", var(--tux-font);
+  font-size: 22px;
+  font-weight: 800;
+  font-stretch: 115%;
+  font-variation-settings: "wdth" 115;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: #070c17;
+  -webkit-text-stroke: 5px #ffffff;
+  paint-order: stroke fill;
+}
+
+.map-district-subtitle {
+  font-family: "TikTok Sans Variable", var(--tux-font);
+  font-size: 12px;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-variation-settings: "wdth" 100;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: #686868;
+  -webkit-text-stroke: 2px #ffffff;
+  paint-order: stroke fill;
+}
+
+/* District subtitle — per-character entrance (opacity + Y + motion blur). */
+@keyframes map-subtitle-char-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+    filter: blur(5px);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  45% {
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0);
+  }
+}
+
+.map-subtitle-char {
+  display: inline-block;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.map-subtitle-char--hidden {
+  opacity: 0;
+}
+
+.map-subtitle-char--enter {
+  animation: map-subtitle-char-enter var(--subtitle-char-duration)
+    var(--ease-marker-enter) both;
+  animation-delay: calc(var(--char-index) * var(--subtitle-char-stagger));
+  will-change: transform, opacity, filter;
+}
+
+.map-subtitle-char--done {
+  will-change: auto;
+}
+
 /* Bump-style panels — soft gradient surface + raised/inset chips */
 .bump-panel {
   background: linear-gradient(
@@ -209,6 +335,34 @@ body {
 
 .bump-grabber {
   background: oklch(0.86 0.008 260);
+}
+
+/* Overlapping sheet tabs (Figma node 2969:18757) */
+.sheet-tabs__back {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 254, 0.6) 0%,
+    rgba(241, 243, 247, 0.6) 100%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.38);
+  border-bottom: none;
+  border-top-left-radius: 32px;
+  border-top-right-radius: 32px;
+  box-shadow: 0 -5px 14px oklch(0 0 0 / 0.07);
+  backdrop-filter: blur(21px);
+  -webkit-backdrop-filter: blur(21px);
+}
+
+.sheet-tabs__front {
+  filter: drop-shadow(0 -6px 16px oklch(0 0 0 / 0.07));
+}
+
+.sheet-tabs__body {
+  background: linear-gradient(
+    180deg,
+    var(--panel-bg-top) 0%,
+    var(--panel-bg-bottom) 100%
+  );
 }
 
 .bump-surface {
@@ -458,7 +612,8 @@ body {
     opacity 0.32s var(--ease-out);
 }
 
-.sheet-stage--recede {
+.sheet-stage--recede,
+.sheet-stage--enter-hidden {
   transform: translate3d(0, 110%, 0);
   opacity: 0;
   pointer-events: none;
@@ -573,17 +728,13 @@ body {
 /* Current-user avatar entrance into “N saved” SocialPill stack */
 .saved-avatar-pop {
   transform-origin: center;
-  animation: saved-avatar-pop 0.32s var(--ease-out) both;
+  animation: saved-avatar-pop 0.4s var(--ease-out) both;
 }
 
 @keyframes saved-avatar-pop {
   0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  55% {
-    opacity: 1;
-    transform: scale(1.08);
+    opacity: 0.7;
+    transform: scale(0.92);
   }
   100% {
     opacity: 1;
@@ -639,6 +790,50 @@ body {
   animation: poi-pin-out 0.26s var(--ease-in) both;
 }
 
+/* Selected POI pin — pop + wiggle anchored on pin tip (Operate mode). */
+.poi-pin--selected-enter {
+  transform-origin: center bottom;
+  animation: poi-pin-selected-in 850ms 0.4s var(--ease-out) both;
+}
+
+@keyframes poi-pin-selected-in {
+  0% {
+    transform: scale(0) rotate(0deg);
+  }
+  8% {
+    transform: scale(0.38) rotate(0deg);
+  }
+  17% {
+    transform: scale(0.9) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.07) rotate(-7deg);
+  }
+  45% {
+    transform: scale(1.01) rotate(6deg);
+  }
+  65% {
+    transform: scale(1.005) rotate(-3deg);
+  }
+  85% {
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes poi-pin-selected-reduced {
+  from {
+    opacity: 0.85;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes poi-pin-in {
   from {
     opacity: 0;
@@ -689,6 +884,138 @@ body {
     opacity: 0;
     transform: translate3d(0, 8px, 0);
   }
+}
+
+/* Map markers — hidden during tab-switch flyTo, then ease in.
+   Transform-only (no opacity) keeps stacked avatars on one compositor layer. */
+@keyframes map-marker-enter {
+  0% {
+    transform: scale(0.94);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  70% {
+    transform: scale(1.04);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes map-marker-enter-lift {
+  0% {
+    transform: translate3d(0, 2px, 0) scale(0.94);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  70% {
+    transform: translate3d(0, 0, 0) scale(1.04);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.map-marker-enter {
+  transform-origin: center center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: map-marker-enter var(--marker-enter-duration) var(--ease-marker-enter)
+    both;
+  will-change: transform;
+}
+
+.map-marker-enter--done {
+  will-change: auto;
+  transform: scale(1);
+}
+
+.map-marker-enter--lift {
+  animation-name: map-marker-enter-lift;
+}
+
+.map-marker-enter--anchor-bottom {
+  transform-origin: 50% 100%;
+}
+
+.map-marker-enter--hidden {
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.94);
+}
+
+.map-marker-enter--hidden.map-marker-enter--lift {
+  transform: translate3d(0, 2px, 0) scale(0.94);
+}
+
+/* Ranking tab avatars — per-marker fade + scale (opacity OK; no stacked pill). */
+@keyframes map-ranking-avatar-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 2px, 0) scale(0.88);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.map-ranking-avatar-enter {
+  transform-origin: center center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: map-ranking-avatar-enter var(--marker-enter-duration)
+    var(--ease-marker-enter) both;
+  will-change: transform, opacity;
+}
+
+.map-ranking-avatar-enter--done {
+  will-change: auto;
+  opacity: 1;
+  transform: scale(1);
+}
+
+.map-ranking-avatar-enter--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(0, 2px, 0) scale(0.88);
+}
+
+/* Comment bubble — pops after all activity markers enter; anchored on tail dot. */
+@keyframes map-comment-bubble-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.04);
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.map-comment-bubble-enter {
+  transform-origin: 8px calc(100% - 3px);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: map-comment-bubble-enter var(--marker-enter-duration)
+    var(--ease-marker-enter) both;
+  will-change: transform, opacity;
+}
+
+.map-comment-bubble-enter--done {
+  will-change: auto;
+  opacity: 1;
+  transform: scale(1);
 }
 
 /* Map chrome hide/show — GPU only. Exit ~75% of enter. */
@@ -742,8 +1069,19 @@ body {
   }
 
   .sheet-stage--recede,
+  .sheet-stage--enter-hidden,
   .sheet-pane--left,
   .sheet-pane--right {
+    transform: none;
+  }
+
+  .map-marker-enter,
+  .map-ranking-avatar-enter,
+  .map-comment-bubble-enter,
+  .map-subtitle-char--enter {
+    animation: ranking-fade-in 0.2s ease-out both;
+    animation-delay: 0s;
+    filter: none;
     transform: none;
   }
 
@@ -755,6 +1093,10 @@ body {
   .poi-compass--exit,
   .poi-corner-peel {
     animation: ranking-fade-in 0.2s ease-out both;
+  }
+
+  .poi-pin--selected-enter {
+    animation: poi-pin-selected-reduced 0.2s ease-out both;
   }
 
   .poi-corner-peel--saved .poi-corner-peel__glyph-pop {
@@ -880,8 +1222,10 @@ body {
   z-index: 0 !important;
 }
 
+/* Default above the canvas wash; SocialMap sets higher inline z-index for
+   selected markers and comment bubbles. Avoid !important so inline wins. */
 .mapboxgl-marker {
-  z-index: 1 !important;
+  z-index: 1;
 }
 
 @keyframes typing-dot-bounce {
@@ -914,5 +1258,41 @@ body {
     animation: none;
     opacity: 0.65;
     transform: none;
+  }
+}
+
+/* Landing ↔ map iOS-style horizontal slide */
+.app-screen-stack {
+  isolation: isolate;
+}
+
+.app-screen {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  transition: transform 0.32s var(--ease-out);
+}
+
+.app-screen--active {
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.app-screen--left {
+  transform: translate3d(-100%, 0, 0);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.app-screen--right {
+  transform: translate3d(100%, 0, 0);
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-screen {
+    transition: none;
   }
 }
