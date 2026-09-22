@@ -1,5 +1,7 @@
 "use client";
 
+import type { AnimationEvent } from "react";
+
 interface AnimatedSubtitleProps {
   text: string;
   /** When false, characters stay hidden until the next play cycle. */
